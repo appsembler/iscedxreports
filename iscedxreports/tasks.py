@@ -47,7 +47,6 @@ def cmc_course_completion_report():
 
     mongo_courses = modulestore().get_courses()
 
-    # writer.writerow(['username', 'course_id', 'user_id', 'username', 'full_name', 'course_access_group', 'final_score'])
     writer.writerow(['Training/CMC Username', 'Training Email', 'Training Name', 'Job Title', 'Course Title', 'Course Selection', 'Completion Date', 'Last Section Completed'])
     for course in mongo_courses:
         if course.org != 'cmc':
@@ -69,7 +68,10 @@ def cmc_course_completion_report():
             except GeneratedCertificate.DoesNotExist:
                 completion_date = 'n/a'
             try:
-                last_section_completed = StudentModule.objects.filter(student=user, course_id=course.id).order_by('-created')[0].module_state_key.block_id
+                smod = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
+                mod = modulestore().get_item(smod.module_state_key)
+                last_section_completed = mod.display_name
+                import pdb; pdb.set_trace()
             except IndexError:
                 last_section_completed = 'n/a'
             output_data = [d[1], user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
