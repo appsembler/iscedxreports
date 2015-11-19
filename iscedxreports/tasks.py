@@ -71,7 +71,6 @@ def cmc_course_completion_report():
                 smod = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
-                import pdb; pdb.set_trace()
             except IndexError:
                 last_section_completed = 'n/a'
             output_data = [d[1], user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
