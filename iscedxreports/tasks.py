@@ -59,7 +59,7 @@ def cmc_course_completion_report():
             user = User.objects.get(id=user_id)
             try:
                 job_title = json.loads(UserProfile.objects.get(user_id=user_id).meta)['job-title']
-            except (AttributeError, KeyError):
+            except (KeyError, ValueError):
                 job_title = ''
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
