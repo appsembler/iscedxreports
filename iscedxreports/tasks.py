@@ -19,6 +19,10 @@ from instructor.views.legacy import get_student_grade_summary_data
 from celery.task.schedules import crontab
 from celery.decorators import periodic_task
 
+from student.models import CourseEnrollment
+from courseware.models import StudentModule
+from certificates.models import GeneratedCertificate
+
 try:
     from iscedxreports.app_settings import CMC_REPORT_RECIPIENTS
 except ImportError:
@@ -43,27 +47,33 @@ def cmc_course_completion_report():
 
     mongo_courses = modulestore().get_courses()
 
-    writer.writerow(['course_id', 'user_id', 'username', 'full_name', 'email', 'course_access_group', 'final_score'])
+    # writer.writerow(['username', 'course_id', 'user_id', 'username', 'full_name', 'course_access_group', 'final_score'])
+    writer.writerow(['Training/CMC Username', 'Training Email', 'Training Name', 'Job Title', 'Course Title', 'Course Selection', 'Completion Date', 'Last Section Completed'])
     for course in mongo_courses:
-        # course_id = 'course-v1:Metalogix+EO301+2015'
-        # course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
-        # course = get_course_by_id(course_key)
         get_raw_scores = False
         datatable = get_student_grade_summary_data(request, course, get_raw_scores=get_raw_scores)
         for d in datatable['data']:
             user_id = d[0]
             user = User.objects.get(id=user_id)
+            enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
-                course_access_group = user.courseaccessgroup_set.all()[0].name  # assume there's at least one group and get it
-            except:
-                course_access_group = 'None'
-            output_data = [course.id, d[0], d[1], d[2], d[3], course_access_group, d[len(d)-1]]
+                # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
+                # record here as complete.
+                completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created)
+            except GeneratedCertificate.DoesNotExist:
+                completion_date = 'n/a'
+            try:
+                last_section_completed = StudentModule.objects.filter(student=user, course_id=course.id).order_by('-created')[0].module_state_key.block_id
+                # import pdb; pdb.set_trace()
+            except IndexError:
+                last_section_completed = 'n/a'
+            output_data = [d[1], user.email, d[2], 'dummy job title', course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
 
     fp.close()
-    
+
     # email it to specified recipients
     try:
         fp = open('/tmp/gradeOutputFull.csv', 'r')
