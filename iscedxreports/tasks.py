@@ -20,7 +20,7 @@ from instructor.views.legacy import get_student_grade_summary_data
 from celery.task.schedules import crontab
 from celery.decorators import periodic_task
 
-from student.models import CourseEnrollment
+from student.models import CourseEnrollment, UserProfile
 from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
 
