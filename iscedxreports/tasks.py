@@ -63,7 +63,7 @@ def cmc_course_completion_report():
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
                 # record here as complete.
-                completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created)
+                completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date)
             except GeneratedCertificate.DoesNotExist:
                 completion_date = 'n/a'
             try:
