@@ -3,6 +3,7 @@ Django Celery tasks for ISC edX reporting
 """
 
 from os import environ
+import json
 import csv
 import logging
 from datetime import datetime
@@ -35,7 +36,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-@periodic_task(run_every=crontab(hour=1, minute=10), name='celery.intersystems.cmc.course_completion')
+@periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.cmc.course_completion')
 @celery.task(name='tasks.intersystems.cmc.course_completion')
 def cmc_course_completion_report():
 
@@ -57,8 +58,8 @@ def cmc_course_completion_report():
             user_id = d[0]
             user = User.objects.get(id=user_id)
             try:
-                job_title = user.job-title
-            except AttributeError:
+                job_title = json.loads(UserProfile.objects.get(user_id=user_id).meta)['job-title']
+            except (AttributeError, KeyError):
                 job_title = ''
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
