@@ -81,7 +81,7 @@ def cmc_course_completion_report():
 
     # email it to specified recipients
     try:
-        fp = open('/tmp/gradeOutputFull.csv', 'r')
+        fp = open('/tmp/cmc_course_completion.csv', 'r')
         fp.seek(0)
         dest_addr = CMC_REPORT_RECIPIENTS
         subject = "Nightly CMC course completion status for {0}".format(str(datetime.now()))
