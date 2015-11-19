@@ -42,7 +42,7 @@ def cmc_course_completion_report():
     # from celery.contrib import rdb; rdb.set_trace()  # celery remote debugger
     request = DummyRequest()
 
-    fp = open('/tmp/gradeOutputFull.csv', 'w')
+    fp = open('/tmp/cmc_course_completion.csv', 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
     mongo_courses = modulestore().get_courses()
@@ -50,6 +50,8 @@ def cmc_course_completion_report():
     # writer.writerow(['username', 'course_id', 'user_id', 'username', 'full_name', 'course_access_group', 'final_score'])
     writer.writerow(['Training/CMC Username', 'Training Email', 'Training Name', 'Job Title', 'Course Title', 'Course Selection', 'Completion Date', 'Last Section Completed'])
     for course in mongo_courses:
+        if course.org != 'cmc':
+            continue
         get_raw_scores = False
         datatable = get_student_grade_summary_data(request, course, get_raw_scores=get_raw_scores)
         for d in datatable['data']:
