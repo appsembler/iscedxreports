@@ -55,6 +55,10 @@ def cmc_course_completion_report():
         for d in datatable['data']:
             user_id = d[0]
             user = User.objects.get(id=user_id)
+            try:
+                job_title = user.job-title
+            except AttributeError:
+                job_title = ''
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
@@ -64,10 +68,9 @@ def cmc_course_completion_report():
                 completion_date = 'n/a'
             try:
                 last_section_completed = StudentModule.objects.filter(student=user, course_id=course.id).order_by('-created')[0].module_state_key.block_id
-                # import pdb; pdb.set_trace()
             except IndexError:
                 last_section_completed = 'n/a'
-            output_data = [d[1], user.email, d[2], 'dummy job title', course.display_name, str(enroll_date), str(completion_date), last_section_completed]
+            output_data = [d[1], user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
