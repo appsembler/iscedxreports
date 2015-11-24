@@ -20,7 +20,7 @@ from instructor.views.legacy import get_student_grade_summary_data
 from celery.task.schedules import crontab
 from celery.decorators import periodic_task
 
-from student.models import CourseEnrollment, UserProfile
+from student.models import CourseEnrollment, UserProfile, CourseAccessRole
 from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
 
@@ -43,7 +43,9 @@ def cmc_course_completion_report():
     # from celery.contrib import rdb; rdb.set_trace()  # celery remote debugger
     request = DummyRequest()
 
-    fp = open('/tmp/cmc_course_completion.csv', 'w')
+    dt = str(datetime.now()).replace(' ', '')
+    fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt)
+    fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
     mongo_courses = modulestore().get_courses()
@@ -52,11 +54,25 @@ def cmc_course_completion_report():
     for course in mongo_courses:
         if course.org != 'cmc':
             continue
+
         get_raw_scores = False
         datatable = get_student_grade_summary_data(request, course, get_raw_scores=get_raw_scores)
         for d in datatable['data']:
             user_id = d[0]
             user = User.objects.get(id=user_id)
+
+            # exclude beta-testers...
+            try:
+                if 'beta_testers' in CourseAccessRole.objects.get(user=user, course_id=course.id).role:
+                    continue
+            except:
+                pass
+            # and certain users and email domains
+            if user.email.lower().split('@')[1] in ('intersystems.com', 'appsembler.com', 'j2interactive.com') or \
+                user.email.lower() in ('julia@ehsol.co.uk', 'julia.riley@rmh.nhs.uk', 'bijal.shah@rmh.nhs.uk',
+                                       'john.middleton@rmh.nhs.uk', 'jonathan.merefield@gmail.com',
+                                       'staff@example.com'):
+                continue
             try:
                 job_title = json.loads(UserProfile.objects.get(user_id=user_id).meta)['job-title']
             except (KeyError, ValueError):
@@ -83,10 +99,10 @@ def cmc_course_completion_report():
 
     # email it to specified recipients
     try:
-        fp = open('/tmp/cmc_course_completion.csv', 'r')
+        fp = open(fn, 'r')
         fp.seek(0)
         dest_addr = CMC_REPORT_RECIPIENTS
-        subject = "Nightly CMC course completion status for {0}".format(str(datetime.now()))
+        subject = "Nightly CMC course completion status for {0}".format(dt)
         message = "See attached CSV file"
         mail = EmailMessage(subject, message, to=[dest_addr])
         mail.attach(fp.name, fp.read(), 'text/csv')
