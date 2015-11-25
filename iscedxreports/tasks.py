@@ -71,7 +71,7 @@ def cmc_course_completion_report():
             if user.email.lower().split('@')[1] in ('intersystems.com', 'appsembler.com', 'j2interactive.com') or \
                 user.email.lower() in ('julia@ehsol.co.uk', 'julia.riley@rmh.nhs.uk', 'bijal.shah@rmh.nhs.uk',
                                        'john.middleton@rmh.nhs.uk', 'jonathan.merefield@gmail.com',
-                                       'staff@example.com'):
+                                       'staff@example.com', 'bryanlandia+cmctest1@gmail.com'):
                 continue
             try:
                 job_title = json.loads(UserProfile.objects.get(user_id=user_id).meta)['job-title']
