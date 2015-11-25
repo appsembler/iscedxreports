@@ -104,7 +104,7 @@ def cmc_course_completion_report():
         dest_addr = CMC_REPORT_RECIPIENTS
         subject = "Nightly CMC course completion status for {0}".format(dt)
         message = "See attached CSV file"
-        mail = EmailMessage(subject, message, to=[dest_addr])
+        mail = EmailMessage(subject, message, to=dest_addr)
         mail.attach(fp.name, fp.read(), 'text/csv')
         mail.send()
     except:

@@ -6,7 +6,7 @@ try:
     ENV_TOKENS = settings.ENV_TOKENS
 
     INTERSYSTEMS_REPORT_RECIPIENTS = ENV_TOKENS.get('INTERSYSTEMS_REPORT_RECIPIENTS', None)
-    CMC_REPORT_RECIPIENTS = ENV_TOKENS.get('CMC_REPORT_RECIPIENTS', ('bryan@appsembler.com'))
+    CMC_REPORT_RECIPIENTS = ENV_TOKENS.get('CMC_REPORT_RECIPIENTS', ('bryan@appsembler.com', ))
 
 except AttributeError:
     # these won't be available in test
