@@ -1,5 +1,6 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
+
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
     README = readme.read()
@@ -9,8 +10,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='iscedxreports',
-    version='0.1',
-    packages=['iscedxreports'],
+    version='0.2',
+    packages=find_packages(),
     include_package_data=True,
     license='BSD License',  # example license
     description='A Django app to handle edX reporting for InterSystems',
