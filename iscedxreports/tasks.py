@@ -50,7 +50,7 @@ def cmc_course_completion_report():
 
     mongo_courses = modulestore().get_courses()
 
-    writer.writerow(['Training/CMC Username', 'Training Email', 'Training Name', 'Job Title', 'Course Title', 'Course Selection', 'Completion Date', 'Last Section Completed'])
+    writer.writerow(['Training/CMC Username', 'Organization', 'Training Email', 'Training Name', 'Job Title', 'Course Title', 'Course Selection', 'Completion Date', 'Last Section Completed'])
     for course in mongo_courses:
         if course.org != 'cmc':
             continue
@@ -90,7 +90,7 @@ def cmc_course_completion_report():
                 last_section_completed = mod.display_name
             except IndexError:
                 last_section_completed = 'n/a'
-            output_data = [d[1], user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
+            output_data = [d[1], user.organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
