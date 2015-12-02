@@ -60,6 +60,7 @@ def cmc_course_completion_report():
         for d in datatable['data']:
             user_id = d[0]
             user = User.objects.get(id=user_id)
+            profile = UserProfile.objects.get(id=user_id)
 
             # exclude beta-testers...
             try:
@@ -74,7 +75,7 @@ def cmc_course_completion_report():
                                        'staff@example.com', 'bryanlandia+cmctest1@gmail.com'):
                 continue
             try:
-                job_title = json.loads(UserProfile.objects.get(user_id=user_id).meta)['job-title']
+                job_title = json.loads(profile.meta)['job-title']
             except (KeyError, ValueError):
                 job_title = ''
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
@@ -90,7 +91,7 @@ def cmc_course_completion_report():
                 last_section_completed = mod.display_name
             except IndexError:
                 last_section_completed = 'n/a'
-            output_data = [d[1], user.organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
+            output_data = [d[1], profile.organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
