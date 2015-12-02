@@ -60,7 +60,7 @@ def cmc_course_completion_report():
         for d in datatable['data']:
             user_id = d[0]
             user = User.objects.get(id=user_id)
-            profile = UserProfile.objects.get(id=user_id)
+            profile = UserProfile.objects.get(user=user_id)
 
             # exclude beta-testers...
             try:
