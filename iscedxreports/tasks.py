@@ -15,7 +15,16 @@ from djcelery import celery
 
 from xmodule.modulestore.django import modulestore
 from instructor.utils import DummyRequest
-from instructor.views.legacy import get_student_grade_summary_data
+
+# guard against errors in case iscedxreports accidentally installed
+# as CMS app
+try:
+    from instructor.views.legacy import get_student_grade_summary_data
+except AttributeError:
+    logger = logging.getLogger(__name__)
+    logger.warn('\n\niscedxreports should not be installed as a CMS app. '
+                'Swallowing errors and continuing. Remove from '
+                'ADDL_INSTALLED_APPS in cms.env.json\n\n')
 
 from celery.task.schedules import crontab
 from celery.decorators import periodic_task
