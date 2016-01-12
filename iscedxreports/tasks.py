@@ -135,7 +135,7 @@ def va_enrollment_report():
     writer.writerow(['Username', 'Email', 'Name', 'Enrollment Date'])
 
     # get enrollments within last 24 hours
-    startdate = datetime.today() - timedelta(hours=2400)
+    startdate = datetime.today() - timedelta(hours=24)
     enrollments = CourseEnrollment.objects.filter(created__gt=startdate).order_by('-created')
     store = modulestore()
     valid_enrollments = 0
@@ -150,7 +150,7 @@ def va_enrollment_report():
             continue
 
         valid_enrollments += 1
-        user = User.objects.get(id=user_id)    
+        user = User.objects.get(id=enroll.user_id)
         output_data = [user.username, user.email, "{0} {1}".format(user.first_name, user.last_name), str(created)]
         encoded_row = [unicode(s).encode('utf-8') for s in output_data]
         
