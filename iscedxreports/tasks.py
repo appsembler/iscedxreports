@@ -7,6 +7,7 @@ import json
 import csv
 import logging
 from datetime import datetime, timedelta
+from dateutil import tz
 
 from django.contrib.auth.models import User
 from django.core.mail import EmailMessage
@@ -34,12 +35,12 @@ from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
 
 try:
-    from iscedxreports.app_settings import CMC_REPORT_RECIPIENTS, VA_REPORT_RECIPIENTS
+    from iscedxreports.app_settings import CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
             'lms.envs.acceptance', 'lms.envs.test',
             'cms.envs.acceptance', 'cms.envs.test'):
-        CMC_REPORT_RECIPIENTS = VA_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
+        CMC_REPORT_RECIPIENTS = VA_ENROLLMENT_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
 
 
 logger = logging.getLogger(__name__)
@@ -151,6 +152,7 @@ def va_enrollment_report():
 
         valid_enrollments += 1
         user = User.objects.get(id=enroll.user_id)
+        created = enroll.created.astimezone(tz.gettz('America/New_York'))
         output_data = [user.username, user.email, "{0} {1}".format(user.first_name, user.last_name), str(created)]
         encoded_row = [unicode(s).encode('utf-8') for s in output_data]
         
@@ -162,7 +164,7 @@ def va_enrollment_report():
     try:
         fp = open(fn, 'r')
         fp.seek(0)
-        dest_addr = VA_REPORT_RECIPIENTS
+        dest_addr = VA_ENROLLMENT_REPORT_RECIPIENTS
         subject = "Nightly new VA Learning Path course enrollments status for {0}".format(dt)
         if valid_enrollments:
             message = "No new enrollments in last 24 hours"
