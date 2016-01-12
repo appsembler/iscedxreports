@@ -6,7 +6,7 @@ from os import environ
 import json
 import csv
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
 from django.core.mail import EmailMessage
@@ -34,12 +34,12 @@ from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
 
 try:
-    from iscedxreports.app_settings import CMC_REPORT_RECIPIENTS
+    from iscedxreports.app_settings import CMC_REPORT_RECIPIENTS, VA_REPORT_RECIPIENTS
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
             'lms.envs.acceptance', 'lms.envs.test',
             'cms.envs.acceptance', 'cms.envs.test'):
-        CMC_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
+        CMC_REPORT_RECIPIENTS = VA_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
 
 
 logger = logging.getLogger(__name__)
@@ -119,5 +119,60 @@ def cmc_course_completion_report():
         mail.send()
     except:
         logger.warn('CMC Nightly course completion report failed')
+    finally:
+        fp.close()
+
+
+@periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.va.enrollment')
+@celery.task(name='tasks.intersystems.va.enrollment')
+def va_enrollment_report():
+    logger.warn('Running VA Learning Path enrollment report')
+
+    dt = str(datetime.now()).replace(' ', '')
+    fn = '/tmp/va_enrollment_{0}.csv'.format(dt)
+    fp = open(fn, 'w')
+    writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
+    writer.writerow(['Username', 'Email', 'Name', 'Enrollment Date'])
+
+    # get enrollments within last 24 hours
+    startdate = datetime.today() - timedelta(hours=2400)
+    enrollments = CourseEnrollment.objects.filter(created__gt=startdate).order_by('-created')
+    store = modulestore()
+    valid_enrollments = 0
+
+    for enroll in enrollments:
+        course = store.get_course(enroll.course_id)
+        if not course:
+            # in case it's been deleted 
+            continue
+
+        if course.org != 'va':
+            continue
+
+        valid_enrollments += 1
+        user = User.objects.get(id=user_id)    
+        output_data = [user.username, user.email, "{0} {1}".format(user.first_name, user.last_name), str(created)]
+        encoded_row = [unicode(s).encode('utf-8') for s in output_data]
+        
+        writer.writerow(encoded_row)
+
+    fp.close()
+
+    # email it to specified recipients
+    try:
+        fp = open(fn, 'r')
+        fp.seek(0)
+        dest_addr = VA_REPORT_RECIPIENTS
+        subject = "Nightly new VA Learning Path course enrollments status for {0}".format(dt)
+        if valid_enrollments:
+            message = "No new enrollments in last 24 hours"
+        else:
+            message = "See attached CSV file for new enrollments in Learning Path courses in the last 24 hours"
+        mail = EmailMessage(subject, message, to=dest_addr)
+        if valid_enrollments:
+            mail.attach(fp.name, fp.read(), 'text/csv')
+        mail.send()
+    except:
+        logger.warn('VA Learning Path enrollment report failed')
     finally:
         fp.close()
