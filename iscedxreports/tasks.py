@@ -152,8 +152,9 @@ def va_enrollment_report():
 
         valid_enrollments += 1
         user = User.objects.get(id=enroll.user_id)
+        profile = UserProfile.objects.get(user_id=enroll.user_id)
         created = enroll.created.astimezone(tz.gettz('America/New_York'))
-        output_data = [user.username, user.email, "{0} {1}".format(user.first_name, user.last_name), str(created)]
+        output_data = [user.username, user.email, profile.name, str(created)]
         encoded_row = [unicode(s).encode('utf-8') for s in output_data]
         
         writer.writerow(encoded_row)
@@ -166,7 +167,7 @@ def va_enrollment_report():
         fp.seek(0)
         dest_addr = VA_ENROLLMENT_REPORT_RECIPIENTS
         subject = "Nightly new VA Learning Path course enrollments status for {0}".format(dt)
-        if valid_enrollments:
+        if not valid_enrollments:
             message = "No new enrollments in last 24 hours"
         else:
             message = "See attached CSV file for new enrollments in Learning Path courses in the last 24 hours"
