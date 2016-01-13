@@ -15,6 +15,8 @@ from django.core.mail import EmailMessage
 from djcelery import celery
 
 from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.exceptions import ItemNotFoundError
+
 from instructor.utils import DummyRequest
 
 # guard against errors in case iscedxreports accidentally installed
@@ -108,7 +110,7 @@ def isc_course_participation_report():
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
                 last_access_date = smod.created.astimezone(tz.gettz('America/New_York'))
-            except IndexError:
+            except (IndexError, ItemNotFoundError):
                 last_access_date = 'n/a'
                 last_section_completed = 'n/a'
 
