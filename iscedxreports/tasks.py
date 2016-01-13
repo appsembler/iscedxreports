@@ -35,15 +35,107 @@ from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
 
 try:
-    from iscedxreports.app_settings import CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS
+    from iscedxreports.app_settings import (CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS, 
+                                            ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS)
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
             'lms.envs.acceptance', 'lms.envs.test',
             'cms.envs.acceptance', 'cms.envs.test'):
-        CMC_REPORT_RECIPIENTS = VA_ENROLLMENT_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
+        CMC_REPORT_RECIPIENTS = VA_ENROLLMENT_REPORT_RECIPIENTS = \
+        ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
 
 
 logger = logging.getLogger(__name__)
+
+
+def isc_course_participation_report():
+    """
+    Generate an Excel-format CSV report with the following fields for 
+    all users/courses in the system
+    edX Username, user active/inactive, organization, email, name
+    job title, course title, course id, course state (draft/published/), 
+    course enrollment date/time, course completion date/time, 
+    course last section completed, course last access date/time
+    """
+    request = DummyRequest()
+
+    dt = str(datetime.now().astimezone(tz.gettz('America/New_York'))).replace(' ', '')
+    fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
+    fp = open(fn, 'w')
+    writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
+
+    mongo_courses = modulestore().get_courses()
+
+    writer.writerow(['Training Username', 'User Active/Inactive', 
+                     'Organization', 'Training Email', 'Training Name', 
+                     'Job Title', 'Course Title', 'Course Id', 'Course State',
+                     'Course Enrollment Date', 'Course Completion Date', 
+                     'Course Last Section Completed', 'Course Last Access Date'])
+
+    for course in mongo_courses: 
+        datatable = get_student_grade_summary_data(request, course, get_grades=False, get_raw_scores=False)
+        # dummy for now
+        course_state = '(not implemented)'
+
+        for d in datatable['data']:
+            user_id = d[0]
+            user = User.objects.get(id=user_id)
+            active = user.is_active and 'active' or 'inactive'
+            profile = UserProfile.objects.get(user=user_id)
+
+            # exclude beta-testers...
+            try:
+                if 'beta_testers' in CourseAccessRole.objects.get(user=user, course_id=course.id).role:
+                    continue
+            except:
+                pass
+
+            try:
+                job_title = json.loads(profile.meta)['job-title']
+            except (KeyError, ValueError):
+                job_title = ''
+            enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
+
+            try:
+                # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
+                # record here as complete.
+                completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date)
+            except GeneratedCertificate.DoesNotExist:
+                completion_date = 'n/a'
+            try:
+                smod = StudentModule.objects.filter(student=user, course_id=course.id).order_by('-created')[0]
+                smod_ch = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
+                mod = modulestore().get_item(smod.module_state_key)
+                last_section_completed = mod.display_name
+                last_access_date = smod.created.astimezone(tz.gettz('America/New_York'))
+            except IndexError:
+                last_access_date = 'n/a'
+                last_section_completed = 'n/a'
+
+            output_data = [d[1], active, profile.organization, user.email, d[2], job_title, 
+                           course.display_name, str(course.id), course_state,
+                           str(enroll_date), str(completion_date), last_section_completed,
+                           str(last_access_date)]
+            encoded_row = [unicode(s).encode('utf-8') for s in output_data]
+            # writer.writerow(output_data)
+            writer.writerow(encoded_row)
+
+    fp.close()
+
+    # email it to specified recipients
+    try:
+        fp = open(fn, 'r')
+        fp.seek(0)
+        dest_addr = ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS
+        subject = "All course participation status for {0}".format(dt)
+        message = "See attached CSV file"
+        mail = EmailMessage(subject, message, to=dest_addr)
+        mail.attach(fp.name, fp.read(), 'text/csv')
+        mail.send()
+    except:
+        logger.warn('All course participation report failed')
+    finally:
+        fp.close()        
 
 
 @periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.cmc.course_completion')
@@ -124,12 +216,10 @@ def cmc_course_completion_report():
         fp.close()
 
 
-@periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.va.enrollment')
-@celery.task(name='tasks.intersystems.va.enrollment')
 def va_enrollment_report():
     logger.warn('Running VA Learning Path enrollment report')
 
-    dt = str(datetime.now()).replace(' ', '')
+    dt = str(datetime.now()).astimezone(tz.gettz('America/New_York')).replace(' ', '')
     fn = '/tmp/va_enrollment_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
