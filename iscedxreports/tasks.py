@@ -70,19 +70,24 @@ def isc_course_participation_report():
 
     writer.writerow(['Training Username', 'User Active/Inactive', 
                      'Organization', 'Training Email', 'Training Name', 
-                     'Job Title', 'Course Title', 'Course Id', 'Course State',
+                     'Job Title',  'Course Title', 'Course Id', 'Course Org',
+                     'Course Run', 'Course State',
                      'Course Enrollment Date', 'Course Completion Date', 
                      'Course Last Section Completed', 'Course Last Access Date'])
 
     for course in mongo_courses: 
         datatable = get_student_grade_summary_data(request, course, get_grades=False, get_raw_scores=False)
+        
         # dummy for now
         course_state = '(not implemented)'
 
         for d in datatable['data']:
+            
             user_id = d[0]
             user = User.objects.get(id=user_id)
-            active = user.is_active and 'active' or 'inactive'
+            
+            enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
+            active = enrollment.is_active and 'active' or 'inactive'
             profile = UserProfile.objects.get(user=user_id)
 
             # exclude beta-testers...
@@ -96,7 +101,7 @@ def isc_course_participation_report():
                 job_title = json.loads(profile.meta)['job-title']
             except (KeyError, ValueError):
                 job_title = ''
-            enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
+            enroll_date = enrollment.created
 
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
@@ -115,7 +120,8 @@ def isc_course_participation_report():
                 last_section_completed = 'n/a'
 
             output_data = [d[1], active, profile.organization, user.email, d[2], job_title, 
-                           course.display_name, str(course.id), course_state,
+                           course.display_name, 
+                           str(course.id), course.org, course.number, course.run, course_state,
                            str(enroll_date), str(completion_date), last_section_completed,
                            str(last_access_date)]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
