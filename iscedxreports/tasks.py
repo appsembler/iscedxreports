@@ -79,7 +79,12 @@ def isc_course_participation_report():
         datatable = get_student_grade_summary_data(request, course, get_grades=False, get_raw_scores=False)
         
         # dummy for now
-        course_state = '(not implemented)'
+        visible = course.catalog_visibility in ('None', 'About') and False or True
+        public = course.ispublic != False
+        staff_only = course.visible_to_staff_only
+        course_public = (visible and public and not staff_only) and 'Public' or 'Private'
+        course_date_status = course.has_ended() and 'Ended' or (course.has_started() and 'Active' or 'Not started')
+        course_state = '{0}, {1}'.format(course_public, course_date_status)
 
         for d in datatable['data']:
             
