@@ -126,7 +126,7 @@ def isc_course_participation_report():
 
             output_data = [d[1], active, profile.organization, user.email, d[2], job_title, 
                            course.display_name, 
-                           str(course.id), course.org, course.number, course.run, course_state,
+                           str(course.id), course.org, course.number, course.location.run, course_state,
                            str(enroll_date), str(completion_date), last_section_completed,
                            str(last_access_date)]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
