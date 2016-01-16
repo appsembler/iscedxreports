@@ -71,6 +71,7 @@ def isc_course_participation_report():
     writer.writerow(['Training Username', 'User Active/Inactive', 
                      'Organization', 'Training Email', 'Training Name', 
                      'Job Title',  'Course Title', 'Course Id', 'Course Org',
+                     'Course Number',
                      'Course Run', 'Course State',
                      'Course Enrollment Date', 'Course Completion Date', 
                      'Course Last Section Completed', 'Course Last Access Date'])
