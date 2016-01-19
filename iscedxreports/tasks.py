@@ -72,7 +72,7 @@ def isc_course_participation_report():
                      'Organization', 'Training Email', 'Training Name', 
                      'Job Title',  'Course Title', 'Course Id', 'Course Org',
                      'Course Number',
-                     'Course Run', 'Course State',
+                     'Course Run', 'Course Visibility', 'Course State',
                      'Course Enrollment Date', 'Course Completion Date', 
                      'Course Last Section Completed', 'Course Last Access Date'])
 
@@ -84,10 +84,9 @@ def isc_course_participation_report():
         # course.ispublic is being used in a non-standard way so not reliable as to public visibility
         # public = course.ispublic != False
         staff_only = course.visible_to_staff_only
-        course_public = (visible and not staff_only) and 'Public' or 'Private'
-        course_date_status = course.has_ended() and 'Ended' or (course.has_started() and 'Active' or 'Not started')
-        course_state = '{0}, {1}'.format(course_public, course_date_status)
-
+        course_visibility = (visible and not staff_only) and 'Public' or 'Private'
+        course_state = course.has_ended() and 'Ended' or (course.has_started() and 'Active' or 'Not started')
+        
         for d in datatable['data']:
             
             user_id = d[0]
@@ -128,7 +127,8 @@ def isc_course_participation_report():
 
             output_data = [d[1], active, profile.organization, user.email, d[2], job_title, 
                            course.display_name, 
-                           str(course.id), course.org, course.number, course.location.run, course_state,
+                           str(course.id), course.org, course.number, course.location.run, 
+                           course_visibility, course_state,
                            str(enroll_date), str(completion_date), last_section_completed,
                            str(last_access_date)]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
