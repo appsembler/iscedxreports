@@ -61,7 +61,7 @@ def isc_course_participation_report():
     """
     request = DummyRequest()
 
-    dt = str(datetime.now()).replace(' ', '')
+    dt = str(datetime.now()).replace(' ', '').replace(':','-')
     fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
@@ -160,7 +160,7 @@ def cmc_course_completion_report():
     # from celery.contrib import rdb; rdb.set_trace()  # celery remote debugger
     request = DummyRequest()
 
-    dt = str(datetime.now()).replace(' ', '')
+    dt = str(datetime.now()).replace(' ', '').replace(':','-')
     fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
@@ -234,7 +234,7 @@ def cmc_course_completion_report():
 def va_enrollment_report():
     logger.warn('Running VA Learning Path enrollment report')
 
-    dt = str(datetime.now()).replace(' ', '')
+    dt = str(datetime.now()).replace(' ', '').replace(':','-')
     fn = '/tmp/va_enrollment_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
