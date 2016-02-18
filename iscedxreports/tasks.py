@@ -2,7 +2,8 @@
 Django Celery tasks for ISC edX reporting
 """
 
-from os import environ
+from os import environ, remove, path
+import shutil
 import json
 import csv
 import logging
@@ -18,6 +19,9 @@ from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
 
 from instructor.utils import DummyRequest
+
+import boto.s3
+from boto.s3.key import Key
 
 # guard against errors in case iscedxreports accidentally installed
 # as CMS app
@@ -38,19 +42,22 @@ from certificates.models import GeneratedCertificate
 
 try:
     from iscedxreports.app_settings import (CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS, 
-                                            ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS)
+                                            ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
+                                            ISC_COURSE_PARTICIPATION_BUCKET, 
+                                            ISC_COURSE_PARTICIPATION_S3_UPLOAD,
+                                            AWS_ID, AWS_KEY)
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
             'lms.envs.acceptance', 'lms.envs.test',
             'cms.envs.acceptance', 'cms.envs.test'):
         CMC_REPORT_RECIPIENTS = VA_ENROLLMENT_REPORT_RECIPIENTS = \
         ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
-
+        ISC_COURSE_PARTICIPATION_S3_UPLOAD = False
 
 logger = logging.getLogger(__name__)
 
 
-def isc_course_participation_report():
+def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD):
     """
     Generate an Excel-format CSV report with the following fields for 
     all users/courses in the system
@@ -58,6 +65,10 @@ def isc_course_participation_report():
     job title, course title, course id, course state (draft/published/), 
     course enrollment date/time, course completion date/time, 
     course last section completed, course last access date/time
+
+    set upload to False if you do not want to upload to S3,
+    this will also keep temporary files that are created.
+
     """
     request = DummyRequest()
 
@@ -150,7 +161,28 @@ def isc_course_participation_report():
     except:
         logger.warn('All course participation report failed')
     finally:
-        fp.close()        
+        fp.close() 
+
+    # upload to S3 bucket
+    if upload:
+        latest_fn = 'isc_course_participation.csv'
+        s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
+        bucketname = ISC_COURSE_PARTICIPATION_BUCKET
+        bucket = s3_conn.get_bucket(bucketname)
+        local_path = fn
+        dest_path = fn.replace('/tmp/', '')
+        try:
+            key = Key(bucket, name=dest_path)
+            key.set_contents_from_filename(local_path)
+            key = Key(bucket, name=latest_fn)
+            key.set_contents_from_filename(local_path)
+        except:
+            raise
+        else:
+            logger.info("uploaded {local} to S3 bucket {bucketname}/{s3path} and replaced {bucketname}{latestpath}".format(local=local_path, bucketname=bucketname, s3path=dest_path, latestpath=latest_fn))
+            # delete the temp file
+            if path.exists(local_path):
+                remove(local_path)
 
 
 @periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.cmc.course_completion')

@@ -23,6 +23,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             isc_course_participation_report()
-            self.stdout.write(self.style.NOTICE('Ran ISC course participation report'))
-        except:
-            raise CommandError('Could not complete ISC course participation report')
+            self.stdout.write(self.style.NOTICE('Ran ISC course participation report\n'))
+        except Exception as e:
+            raise CommandError('Could not complete ISC course participation report\n')
