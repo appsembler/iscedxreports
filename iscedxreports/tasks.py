@@ -1,9 +1,11 @@
 """
-Django Celery tasks for ISC edX reporting
+Django Celery tasks for ISC edX reporting:
+note these are not working as Celery tasks and are called on 
+ISC prod by cron via mgmt commands.
 """
 
 from os import environ, remove, path
-import shutil
+from shutil import copyfile
 import json
 import csv
 import logging
@@ -45,6 +47,8 @@ try:
                                             ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
                                             ISC_COURSE_PARTICIPATION_BUCKET, 
                                             ISC_COURSE_PARTICIPATION_S3_UPLOAD,
+                                            ISC_COURSE_PARTICIPATION_STORE_LOCAL,
+                                            ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
                                             AWS_ID, AWS_KEY)
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
@@ -53,11 +57,13 @@ except ImportError:
         CMC_REPORT_RECIPIENTS = VA_ENROLLMENT_REPORT_RECIPIENTS = \
         ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
         ISC_COURSE_PARTICIPATION_S3_UPLOAD = False
+        ISC_COURSE_PARTICIPATION_STORE_LOCAL = False
 
 logger = logging.getLogger(__name__)
 
 
-def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD):
+def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD, 
+                                    store_local=ISC_COURSE_PARTICIPATION_STORE_LOCAL):
     """
     Generate an Excel-format CSV report with the following fields for 
     all users/courses in the system
@@ -163,6 +169,17 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD):
     finally:
         fp.close() 
 
+    # overwrite latest on local filesystem
+    if store_local:
+        local_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR[0]
+        local_fn = 'isc_course_participation.csv'
+        local_path = local_dir+'/'+local_fn
+        if path.exists(local_dir):
+            if path.exists(local_path):
+                remove(local_path)
+            if fn != local_path:
+                copyfile(fn, local_path)
+
     # upload to S3 bucket
     if upload:
         latest_fn = 'isc_course_participation.csv'
@@ -172,6 +189,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD):
         local_path = fn
         dest_path = fn.replace('/tmp/', '')
         try:
+            # save timestamped copy
             key = Key(bucket, name=dest_path)
             key.set_contents_from_filename(local_path)
             key = Key(bucket, name=latest_fn)
@@ -179,12 +197,12 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD):
         except:
             raise
         else:
-            logger.info("uploaded {local} to S3 bucket {bucketname}/{s3path} and replaced {bucketname}{latestpath}".format(local=local_path, bucketname=bucketname, s3path=dest_path, latestpath=latest_fn))
+            logger.info("uploaded {local} to S3 bucket {bucketname}/{s3path} and replaced {latestpath}".format(local=local_path, bucketname=bucketname, s3path=dest_path, latestpath=latest_fn))
             # delete the temp file
             if path.exists(local_path):
                 remove(local_path)
 
-
+# note these aren't running as Celery 
 @periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.cmc.course_completion')
 @celery.task(name='tasks.intersystems.cmc.course_completion')
 def cmc_course_completion_report():
