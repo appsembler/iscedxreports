@@ -124,7 +124,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 job_title = json.loads(profile.meta)['job-title']
             except (KeyError, ValueError):
                 job_title = ''
-            enroll_date = enrollment.created
+            enroll_date = enrollment.created.astimezone(tz.gettz('America/New_York'))
 
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
