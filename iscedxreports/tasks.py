@@ -129,7 +129,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
                 # record here as complete.
-                completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date)
+                completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date.astimezone(tz.gettz('America/New_York')))
             except GeneratedCertificate.DoesNotExist:
                 completion_date = 'n/a'
             try:
