@@ -1,7 +1,6 @@
 from django.forms import ModelForm, CharField
 
 from .models import InterSystemsUserProfile
-from .app_settings import DISTRICT_CHOICES
 
 
 class InterSystemsUserProfileExtensionForm(ModelForm):
@@ -9,6 +8,7 @@ class InterSystemsUserProfileExtensionForm(ModelForm):
     # b/c of the way the registration extra fields code works,
     # must explicitly specify CharField
     organization = CharField(label='Organization')
+    job_title = CharField(label='Job Title')
 
     def __init__(self, *args, **kwargs):
         super(InterSystemsUserProfileExtensionForm, self).__init__(*args, **kwargs)
@@ -18,4 +18,4 @@ class InterSystemsUserProfileExtensionForm(ModelForm):
 
     class Meta(object):
         model = InterSystemsUserProfile
-        fields = ('organization', )
+        fields = ('organization', 'job_title')

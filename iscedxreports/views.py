@@ -37,6 +37,8 @@ class InterSystemsUserProfileView(APIView):
 
         * organization: The Organization associated with the user
 
+        * job_title: The Job Title associated with the user
+
 
         For all text fields, clients rendering the values should take care
         to HTML escape them to avoid script injections, as the data is
