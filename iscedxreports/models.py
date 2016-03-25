@@ -7,5 +7,5 @@ class InterSystemsUserProfile(models.Model):
     """
     user = models.ForeignKey(User, db_index=True, related_name="InterSystemspreferences")
     organization = models.CharField(verbose_name='Organization', blank=False, max_length=100)
-    job_title = models.CharField(verbose_name='Job Title', blank=True, max_length=100)
+    job_title = models.CharField(verbose_name='Job Title', blank=True, null=True, max_length=100)
 	
