@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('organization', models.CharField(max_length=100, verbose_name=b'Organization')),
                 ('job_title', models.CharField(max_length=100, verbose_name=b'Job Title', blank=True)),
-                ('user', models.ForeignKey(related_name='InterSystemspreferences', to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(unique=True, related_name='InterSystemspreferences', to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]
