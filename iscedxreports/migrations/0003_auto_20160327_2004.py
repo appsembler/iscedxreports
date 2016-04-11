@@ -43,7 +43,7 @@ def move_job_title_meta(apps, schema_editor):
                 iup = InterSystemsUserProfile.objects.get(user=user)  # one should already exist
                 iup.job_title = job_title
                 iup.save()
-        except ValueError:
+        except (ValueError, KeyError):  # only CMC microsites gave job-title meta
             continue
 
 
