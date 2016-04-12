@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 
-from django.db import migrations, models
+from django.db import migrations
 
 
 def get_models(apps):
@@ -20,7 +20,8 @@ def create_intersystemsuserprofile_record(apps, schema_editor):
         
         # make sure we don't already have an InterSystemsUserProfile obj
         try:
-            iup = InterSystemsUserProfile.objects.get(user=user)
+            iup = InterSystemsUserProfile.objects.get(user=user) 
+            iup  # pyflakes
         except InterSystemsUserProfile.DoesNotExist:
             try:
                 newp = InterSystemsUserProfile(user=user, organization=up.organization)
