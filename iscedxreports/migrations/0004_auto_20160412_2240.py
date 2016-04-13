@@ -13,7 +13,7 @@ def enable_auto_certificate_generation(apps, schema_editor):
     CertificateGenerationCourseSetting = apps.get_model("certificates", "CertificateGenerationCourseSetting")
     courses = modulestore().get_courses()
     for course in courses:
-        key = course.course_key
+        key = course.location.course_key
         ccs, created = CertificateGenerationCourseSetting.objects.get_or_create(course_key=key, enabled=1)
         if not created:
         	ccs.enabled = 1
