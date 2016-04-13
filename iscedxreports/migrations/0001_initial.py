@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='InterSystemsUserProfile',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('organization', models.CharField(max_length=100, verbose_name=b'Organization')),
+                ('organization', models.CharField(max_length=100, verbose_name=b'Organization', blank=True)),
                 ('job_title', models.CharField(max_length=100, verbose_name=b'Job Title', blank=True)),
                 ('user', models.ForeignKey(unique=True, related_name='InterSystemspreferences', to=settings.AUTH_USER_MODEL)),
             ],
