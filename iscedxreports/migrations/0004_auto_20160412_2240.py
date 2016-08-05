@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('iscedxreports', '0003_auto_20160327_2004'),
-        ('certificates', '__latest__'),
+        # ('certificates', '__latest__'),
     ]
 
     operations = [
