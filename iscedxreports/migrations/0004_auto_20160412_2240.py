@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('iscedxreports', '0003_auto_20160327_2004'),
-        ('certificates', '0005_auto_20151208_0801'),
+        ('certificates', '__first__'),
     ]
 
     operations = [
