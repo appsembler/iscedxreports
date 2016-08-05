@@ -11,11 +11,12 @@ def enable_auto_certificate_generation(apps, schema_editor):
         enable student-generated certificates on all courses
         by setting the enabled bit
     """
-    CertificateGenerationConfiguration = apps.get_model("certificates", "CertificateGenerationConfiguration")
+    apps.load_app('certificates')
+    CertificateGenerationConfiguration = apps.get_model("lms.djangoapps.certificates", "CertificateGenerationConfiguration")
     ccg = CertificateGenerationConfiguration(enabled=1)  # configuration model.  just add a new one
     ccg.save()
     
-    CertificateGenerationCourseSetting = apps.get_model("certificates", "CertificateGenerationCourseSetting")
+    CertificateGenerationCourseSetting = apps.get_model("lms.djangoapps.certificates", "CertificateGenerationCourseSetting")
     courses = modulestore().get_courses()
     for course in courses:
         key = course.location.course_key
