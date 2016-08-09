@@ -41,6 +41,7 @@ from celery.decorators import periodic_task
 from student.models import CourseEnrollment, UserProfile, CourseAccessRole
 from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
+from .models import InterSystemsUserProfile
 
 try:
     from iscedxreports.app_settings import (CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS, 
@@ -112,6 +113,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
             enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
             active = enrollment.is_active and 'active' or 'inactive'
             profile = UserProfile.objects.get(user=user_id)
+            iscprofile = InterSystemsUserProfile.objects.get(user=user_id)
 
             # exclude beta-testers...
             try:
@@ -142,7 +144,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 last_access_date = 'n/a'
                 last_section_completed = 'n/a'
 
-            output_data = [d[1], active, profile.organization, user.email, d[2], job_title, 
+            output_data = [d[1], active, iscprofile.organization, user.email, d[2], job_title, 
                            course.display_name, 
                            str(course.id), course.org, course.number, course.location.run, 
                            course_visibility, course_state,
@@ -228,6 +230,7 @@ def cmc_course_completion_report():
             user_id = d[0]
             user = User.objects.get(id=user_id)
             profile = UserProfile.objects.get(user=user_id)
+            iscprofile = InterSystemsUserProfile.objects.get(user=user_id)
 
             # exclude beta-testers...
             try:
@@ -258,7 +261,7 @@ def cmc_course_completion_report():
                 last_section_completed = mod.display_name
             except IndexError:
                 last_section_completed = 'n/a'
-            output_data = [d[1], profile.organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
+            output_data = [d[1], iscprofile.organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
