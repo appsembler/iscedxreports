@@ -126,6 +126,11 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 job_title = json.loads(profile.meta)['job-title']
             except (KeyError, ValueError):
                 job_title = ''
+            try:
+                organization = json.loads(profile.meta)['organization']
+            except (KeyError, ValueError):
+                organization = ''
+                
             enroll_date = enrollment.created.astimezone(tz.gettz('America/New_York'))
 
             try:
@@ -144,7 +149,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 last_access_date = 'n/a'
                 last_section_completed = 'n/a'
 
-            output_data = [d[1], active, iscprofile.organization, user.email, d[2], job_title, 
+            output_data = [d[1], active, organization, user.email, d[2], job_title, 
                            course.display_name, 
                            str(course.id), course.org, course.number, course.location.run, 
                            course_visibility, course_state,
@@ -248,6 +253,11 @@ def cmc_course_completion_report():
                 job_title = json.loads(profile.meta)['job-title']
             except (KeyError, ValueError):
                 job_title = ''
+            try:
+                organization = json.loads(profile.meta)['organization']
+            except (KeyError, ValueError):
+                organization = ''
+
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
@@ -261,7 +271,7 @@ def cmc_course_completion_report():
                 last_section_completed = mod.display_name
             except IndexError:
                 last_section_completed = 'n/a'
-            output_data = [d[1], iscprofile.organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
+            output_data = [d[1], organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
