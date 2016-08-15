@@ -113,7 +113,6 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
             enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
             active = enrollment.is_active and 'active' or 'inactive'
             profile = UserProfile.objects.get(user=user_id)
-            iscprofile = InterSystemsUserProfile.objects.get(user=user_id)
 
             # exclude beta-testers...
             try:
@@ -235,7 +234,6 @@ def cmc_course_completion_report():
             user_id = d[0]
             user = User.objects.get(id=user_id)
             profile = UserProfile.objects.get(user=user_id)
-            iscprofile = InterSystemsUserProfile.objects.get(user=user_id)
 
             # exclude beta-testers...
             try:
