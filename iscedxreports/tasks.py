@@ -77,6 +77,8 @@ def do_store_local(tmp_fn, local_dir, local_fn):
 def do_store_s3(tmp_fn, latest_fn, bucketname):
     """ handle Amazon S3 storage for generated files
     """
+    conn_kw = {'aws_access_key_id':AWS_ID, 'aws_secret_access_key':AWS_KEY}
+    s3_conn = boto.s3.connect_to_region(bucket.get_location(), **conn_kw)
     s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
     bucket = s3_conn.get_bucket(bucketname)
     local_path = tmp_fn
