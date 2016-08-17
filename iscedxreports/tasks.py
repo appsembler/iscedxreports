@@ -1,7 +1,8 @@
 """
-Django Celery tasks for ISC edX reporting:
-note these are not working as Celery tasks and are called on 
+These are called on 
 ISC prod by cron via mgmt commands.
+This module is called tasks b/c once they were going to be
+Celery tasks
 """
 
 from os import environ, remove, path
@@ -14,8 +15,6 @@ from dateutil import tz
 
 from django.contrib.auth.models import User
 from django.core.mail import EmailMessage
-
-from djcelery import celery
 
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
@@ -35,8 +34,6 @@ except AttributeError:
                 'Swallowing errors and continuing. Remove from '
                 'ADDL_INSTALLED_APPS in cms.env.json\n\n')
 
-from celery.task.schedules import crontab
-from celery.decorators import periodic_task
 
 from student.models import CourseEnrollment, UserProfile, CourseAccessRole
 from courseware.models import StudentModule
@@ -50,6 +47,10 @@ try:
                                             ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                                             ISC_COURSE_PARTICIPATION_STORE_LOCAL,
                                             ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
+                                            CMC_COURSE_COMPLETION_BUCKET, 
+                                            CMC_COURSE_COMPLETION_S3_UPLOAD,
+                                            CMC_COURSE_COMPLETION_STORE_LOCAL,
+                                            CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR,
                                             AWS_ID, AWS_KEY)
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
@@ -61,6 +62,38 @@ except ImportError:
         ISC_COURSE_PARTICIPATION_STORE_LOCAL = False
 
 logger = logging.getLogger(__name__)
+
+
+def do_store_local(tmp_fn, local_dir, local_fn):
+    """ handle local storage for generated files
+    """
+    local_path = local_dir+'/'+local_fn
+    if path.exists(local_dir):
+        if path.exists(local_path):
+            remove(local_path)
+        if tmp_fn != local_path:
+            copyfile(tmp_fn, local_path)
+
+def do_store_s3(tmp_fn, latest_fn, bucketname):
+    """ handle Amazon S3 storage for generated files
+    """
+    s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
+    bucket = s3_conn.get_bucket(bucketname)
+    local_path = tmp_fn
+    dest_path = tmp_fn.replace('/tmp/', '')
+    try:
+        # save timestamped copy
+        key = Key(bucket, name=dest_path)
+        key.set_contents_from_filename(local_path)
+        key = Key(bucket, name=latest_fn)
+        key.set_contents_from_filename(local_path)
+    except:
+        raise
+    else:
+        logger.info("uploaded {local} to S3 bucket {bucketname}/{s3path} and replaced {latestpath}".format(local=local_path, bucketname=bucketname, s3path=dest_path, latestpath=latest_fn))
+        # delete the temp file
+        if path.exists(local_path):
+            remove(local_path)
 
 
 def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD, 
@@ -177,47 +210,26 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
     # overwrite latest on local filesystem
     if store_local:
-        local_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR[0]
-        local_fn = 'isc_course_participation.csv'
-        local_path = local_dir+'/'+local_fn
-        if path.exists(local_dir):
-            if path.exists(local_path):
-                remove(local_path)
-            if fn != local_path:
-                copyfile(fn, local_path)
+        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR[0]
+        store_fn = 'isc_course_participation.csv'
+        do_store_local(fn, store_dir, store_fn)
 
     # upload to S3 bucket
     if upload:
         latest_fn = 'isc_course_participation.csv'
-        s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
         bucketname = ISC_COURSE_PARTICIPATION_BUCKET
-        bucket = s3_conn.get_bucket(bucketname)
-        local_path = fn
-        dest_path = fn.replace('/tmp/', '')
-        try:
-            # save timestamped copy
-            key = Key(bucket, name=dest_path)
-            key.set_contents_from_filename(local_path)
-            key = Key(bucket, name=latest_fn)
-            key.set_contents_from_filename(local_path)
-        except:
-            raise
-        else:
-            logger.info("uploaded {local} to S3 bucket {bucketname}/{s3path} and replaced {latestpath}".format(local=local_path, bucketname=bucketname, s3path=dest_path, latestpath=latest_fn))
-            # delete the temp file
-            if path.exists(local_path):
-                remove(local_path)
+        do_store_s3(fn, latest_fn, bucketname)
 
-# note these aren't running as Celery 
-@periodic_task(run_every=crontab(hour=1, minute=10), name='periodictask.intersystems.cmc.course_completion')
-@celery.task(name='tasks.intersystems.cmc.course_completion')
-def cmc_course_completion_report():
+
+def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD, 
+                                store_local=CMC_COURSE_COMPLETION_STORE_LOCAL):
 
     # from celery.contrib import rdb; rdb.set_trace()  # celery remote debugger
     request = DummyRequest()
 
-    dt = str(datetime.now()).replace(' ', '').replace(':','-')
-    fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt)
+    dt = str(datetime.now())
+    dt_date_only = dt.split(' ')[0].replace(':','-')
+    fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt.replace(' ', '').replace(':','-'))
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
@@ -281,7 +293,7 @@ def cmc_course_completion_report():
         fp = open(fn, 'r')
         fp.seek(0)
         dest_addr = CMC_REPORT_RECIPIENTS
-        subject = "Nightly CMC course completion status for {0}".format(dt)
+        subject = "Nightly CMC course completion status for {0}".format(dt_date_only)
         message = "See attached CSV file"
         mail = EmailMessage(subject, message, to=dest_addr)
         mail.attach(fp.name, fp.read(), 'text/csv')
@@ -290,6 +302,17 @@ def cmc_course_completion_report():
         logger.warn('CMC Nightly course completion report failed')
     finally:
         fp.close()
+
+    if store_local:
+        store_dir = CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR[0]
+        store_fn = 'cmc_course_completion_{}.csv'.format(dt_date_only)
+        do_store_local(fn, store_dir, store_fn)
+
+    # upload to S3 bucket
+    if upload:
+        latest_fn = 'cmc_course_completion_latest.csv'
+        bucketname = CMC_COURSE_COMPLETION_BUCKET
+        do_store_s3(fn, latest_fn, bucketname)
 
 
 def va_enrollment_report():
