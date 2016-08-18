@@ -231,7 +231,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
     request = DummyRequest()
 
     dt = str(datetime.now())
-    dt_date_only = dt.split(' ')[0].replace(':','-')
+    dt_date_only = dt.split(' ')[0].replace('-','')
     fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt.replace(' ', '').replace(':','-'))
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
