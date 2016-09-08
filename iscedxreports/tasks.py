@@ -128,11 +128,12 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                      'Course Number',
                      'Course Run', 'Course Visibility', 'Course State',
                      'Course Enrollment Date', 'Course Completion Date', 
-                     'Course Last Section Completed', 'Course Last Access Date'])
+                     'Course Last Section Completed', 'Course Last Access Date',
+                     'Grade',])
 
     for course in mongo_courses: 
-        datatable = get_student_grade_summary_data(request, course, get_grades=False, get_raw_scores=False)
-        
+        datatable = get_student_grade_summary_data(request, course, get_grades=True, get_raw_scores=False)
+
         # dummy for now
         visible = course.catalog_visibility in ('None', 'About') and False or True
         # course.ispublic is being used in a non-standard way so not reliable as to public visibility
@@ -189,7 +190,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                            str(course.id), course.org, course.number, course.location.run, 
                            course_visibility, course_state,
                            str(enroll_date), str(completion_date), last_section_completed,
-                           str(last_access_date)]
+                           str(last_access_date), d[5]]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
