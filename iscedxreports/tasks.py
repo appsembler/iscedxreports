@@ -189,7 +189,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 grade = d[5]
             except IndexError:
                 # for some reason sometimes a grade isn't calculated.  Use a 0.0 here.
-                d[5] = 0.0
+                d.append(0.0)
 
             output_data = [d[1], active, organization, user.email, d[2], job_title, 
                            course.display_name, 
