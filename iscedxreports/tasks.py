@@ -185,6 +185,12 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 last_access_date = 'n/a'
                 last_section_completed = 'n/a'
 
+            try:
+                grade = d[5]
+            except IndexError:
+                # for some reason sometimes a grade isn't calculated.  Use a 0.0 here.
+                d[5] = 0.0
+
             output_data = [d[1], active, organization, user.email, d[2], job_title, 
                            course.display_name, 
                            str(course.id), course.org, course.number, course.location.run, 
@@ -192,6 +198,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                            str(enroll_date), str(completion_date), last_section_completed,
                            str(last_access_date), d[5]]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
+
             # writer.writerow(output_data)
             writer.writerow(encoded_row)
 
