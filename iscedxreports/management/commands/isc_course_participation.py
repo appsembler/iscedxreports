@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Generates and emails a course completion report for CMC microsite'
+    help = 'Generates and emails a course completion report for ISC'
 
     def handle(self, *args, **options):
         try:
