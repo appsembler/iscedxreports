@@ -279,7 +279,10 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
             except (KeyError, ValueError):
                 organization = ''
 
-            enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
+            try:
+                enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
+            except ItemNotFoundError:
+                continue
             try:
                 # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
                 # record here as complete.
@@ -290,7 +293,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
                 smod = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
-            except IndexError:
+            except (IndexError, ItemNotFoundError):
                 last_section_completed = 'n/a'
             output_data = [d[1], organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
