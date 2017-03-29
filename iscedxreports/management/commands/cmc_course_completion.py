@@ -2,6 +2,9 @@ from os import environ
 import logging
 
 from django.core.management.base import BaseCommand, CommandError
+from django.core.mail import EmailMessage
+
+from django.conf import settings
 
 from iscedxreports.tasks import cmc_course_completion_report
 
@@ -24,5 +27,13 @@ class Command(BaseCommand):
         try:
             cmc_course_completion_report()
             self.stdout.write(self.style.NOTICE('Ran CMC course completion report'))
-        except:
+        except Exception as e:
+            self.notify_error(e)
             raise CommandError('Could not complete CMC course completion report')
+
+    def notify_error(self, error):
+        dest_addr = settings.ENV_TOKENS.get("TECH_SUPPORT_EMAIL", "support+intersystems@appsembler.com")
+        subject = "CMC course completion report failed"
+        message = "CMC course completion report failed with error {}".format(error.message)
+        mail = EmailMessage(subject, message, to=(dest_addr,))
+        mail.send()
