@@ -33,7 +33,8 @@ class Command(BaseCommand):
 
     def notify_error(self, error):
         dest_addr = settings.ENV_TOKENS.get("TECH_SUPPORT_EMAIL", "support+intersystems@appsembler.com")
+        cc_addr = settings.ENV_TOKENS.get("DEFAULT_FEEDBACK_EMAIL", "onlineTraining@intersystems.com")
         subject = "CMC course completion report failed"
         message = "CMC course completion report failed with error {}".format(error.message)
-        mail = EmailMessage(subject, message, to=(dest_addr,))
+        mail = EmailMessage(subject, message, to=(dest_addr, cc_addr, ))
         mail.send()
