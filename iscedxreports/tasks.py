@@ -46,11 +46,14 @@ try:
                                             ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                                             ISC_COURSE_PARTICIPATION_STORE_LOCAL,
                                             ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
+                                            ISC_S3_PATH_PREFIX,
                                             CMC_COURSE_COMPLETION_BUCKET,
                                             CMC_COURSE_COMPLETION_S3_UPLOAD,
                                             CMC_COURSE_COMPLETION_STORE_LOCAL,
                                             CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR,
-                                            AWS_ID, AWS_KEY)
+                                            CMC_S3_PATH_PREFIX,
+                                            AWS_ID, AWS_KEY,                                            
+                                            )
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
             'lms.envs.acceptance', 'lms.envs.test',
@@ -73,7 +76,7 @@ def do_store_local(tmp_fn, local_dir, local_fn):
             copyfile(tmp_fn, local_path)
 
 
-def do_store_s3(tmp_fn, latest_fn, bucketname):
+def do_store_s3(tmp_fn, latest_fn, bucketname, s3_path_prefix):
     """Handle Amazon S3 storage for generated files."""
     s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
     conn_kw = {'aws_access_key_id': AWS_ID, 'aws_secret_access_key': AWS_KEY}
@@ -81,7 +84,7 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
     s3_conn = boto.s3.connect_to_region(bucket.get_location(), **conn_kw)
     bucket = s3_conn.get_bucket(bucketname)
     local_path = tmp_fn
-    dest_path = tmp_fn.replace('/tmp/', '')
+    dest_path = s3_path_prefix + tmp_fn.replace('/tmp/', '')
     try:
         # save timestamped copy
         key = Key(bucket, name=dest_path)
@@ -178,7 +181,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 completion_date = 'n/a'
             try:
                 smod = StudentModule.objects.filter(student=user, course_id=course.id).order_by('-created')[0]
-                smod_ch = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
+                # smod_ch = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
                 last_access_date = smod.created.astimezone(tz.gettz('America/New_York'))
@@ -188,6 +191,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
             try:
                 grade = d[5]
+                grade  # pyflakes
             except IndexError:
                 # for some reason sometimes a grade isn't calculated.  Use a 0.0 here.
                 d.append(0.0)
@@ -230,7 +234,8 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     if upload:
         latest_fn = 'isc_course_participation.csv'
         bucketname = ISC_COURSE_PARTICIPATION_BUCKET
-        do_store_s3(fn, latest_fn, bucketname)
+        s3_path_prefix = ISC_S3_PATH_PREFIX
+        do_store_s3(fn, latest_fn, bucketname, s3_path_prefix)
 
 
 def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
@@ -324,4 +329,5 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
     if upload:
         latest_fn = 'cmc_course_completion_latest.csv'
         bucketname = CMC_COURSE_COMPLETION_BUCKET
-        do_store_s3(fn, latest_fn, bucketname)
+        s3_path_prefix = CMC_S3_PATH_PREFIX
+        do_store_s3(fn, latest_fn, bucketname, s3_path_prefix)
