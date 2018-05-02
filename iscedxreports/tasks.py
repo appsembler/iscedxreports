@@ -46,13 +46,13 @@ try:
                                             ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                                             ISC_COURSE_PARTICIPATION_STORE_LOCAL,
                                             ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
-                                            ISC_S3_PATH_PREFIX,
+                                            ISC_COURSE_COMPLETION_S3_FOLDER,
                                             CMC_COURSE_COMPLETION_BUCKET,
                                             CMC_COURSE_COMPLETION_S3_UPLOAD,
                                             CMC_COURSE_COMPLETION_STORE_LOCAL,
                                             CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR,
-                                            CMC_S3_PATH_PREFIX,
-                                            AWS_ID, AWS_KEY,                                            
+                                            CMC_COURSE_COMPLETION_S3_FOLDER,
+                                            AWS_ID, AWS_KEY,
                                             )
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
@@ -234,7 +234,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     if upload:
         latest_fn = 'isc_course_participation.csv'
         bucketname = ISC_COURSE_PARTICIPATION_BUCKET
-        s3_path_prefix = ISC_S3_PATH_PREFIX
+        s3_path_prefix = ISC_COURSE_COMPLETION_S3_FOLDER
         do_store_s3(fn, latest_fn, bucketname, s3_path_prefix)
 
 
@@ -287,7 +287,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
 
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
-                # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
+                # these are all ungraded courses and we are counting anything with a GeneratedCertificate
                 # record here as complete.
                 completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date)
             except GeneratedCertificate.DoesNotExist:
@@ -329,5 +329,5 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
     if upload:
         latest_fn = 'cmc_course_completion_latest.csv'
         bucketname = CMC_COURSE_COMPLETION_BUCKET
-        s3_path_prefix = CMC_S3_PATH_PREFIX
+        s3_path_prefix = CMC_COURSE_COMPLETION_S3_FOLDER
         do_store_s3(fn, latest_fn, bucketname, s3_path_prefix)
