@@ -1,5 +1,5 @@
 """
-These are called on 
+These are called on
 ISC prod by cron via mgmt commands.
 This module is called tasks b/c once they were going to be
 Celery tasks
@@ -10,7 +10,7 @@ from shutil import copyfile
 import json
 import csv
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import tz
 
 from django.contrib.auth.models import User
@@ -38,26 +38,28 @@ except AttributeError:
 from student.models import CourseEnrollment, UserProfile, CourseAccessRole
 from courseware.models import StudentModule
 from certificates.models import GeneratedCertificate
-from .models import InterSystemsUserProfile
 
 try:
-    from iscedxreports.app_settings import (CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS, 
+    from iscedxreports.app_settings import (CMC_REPORT_RECIPIENTS, VA_ENROLLMENT_REPORT_RECIPIENTS,
                                             ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
-                                            ISC_COURSE_PARTICIPATION_BUCKET, 
+                                            ISC_COURSE_PARTICIPATION_BUCKET,
                                             ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                                             ISC_COURSE_PARTICIPATION_STORE_LOCAL,
                                             ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
-                                            CMC_COURSE_COMPLETION_BUCKET, 
+                                            ISC_COURSE_COMPLETION_S3_FOLDER,
+                                            CMC_COURSE_COMPLETION_BUCKET,
                                             CMC_COURSE_COMPLETION_S3_UPLOAD,
                                             CMC_COURSE_COMPLETION_STORE_LOCAL,
                                             CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR,
-                                            AWS_ID, AWS_KEY)
+                                            CMC_COURSE_COMPLETION_S3_FOLDER,
+                                            AWS_ID, AWS_KEY,
+                                            )
 except ImportError:
     if environ.get('DJANGO_SETTINGS_MODULE') in (
             'lms.envs.acceptance', 'lms.envs.test',
             'cms.envs.acceptance', 'cms.envs.test'):
         CMC_REPORT_RECIPIENTS = VA_ENROLLMENT_REPORT_RECIPIENTS = \
-        ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
+            ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
         ISC_COURSE_PARTICIPATION_S3_UPLOAD = False
         ISC_COURSE_PARTICIPATION_STORE_LOCAL = False
 
@@ -65,25 +67,24 @@ logger = logging.getLogger(__name__)
 
 
 def do_store_local(tmp_fn, local_dir, local_fn):
-    """ handle local storage for generated files
-    """
-    local_path = local_dir+'/'+local_fn
+    """Handle local storage for generated files."""
+    local_path = local_dir + '/' + local_fn
     if path.exists(local_dir):
         if path.exists(local_path):
             remove(local_path)
         if tmp_fn != local_path:
             copyfile(tmp_fn, local_path)
 
-def do_store_s3(tmp_fn, latest_fn, bucketname):
-    """ handle Amazon S3 storage for generated files
-    """
+
+def do_store_s3(tmp_fn, latest_fn, bucketname, s3_path_prefix):
+    """Handle Amazon S3 storage for generated files."""
     s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
-    conn_kw = {'aws_access_key_id':AWS_ID, 'aws_secret_access_key':AWS_KEY}
+    conn_kw = {'aws_access_key_id': AWS_ID, 'aws_secret_access_key': AWS_KEY}
     bucket = s3_conn.get_bucket(bucketname)
     s3_conn = boto.s3.connect_to_region(bucket.get_location(), **conn_kw)
     bucket = s3_conn.get_bucket(bucketname)
     local_path = tmp_fn
-    dest_path = tmp_fn.replace('/tmp/', '')
+    dest_path = s3_path_prefix + tmp_fn.replace('/tmp/', '')
     try:
         # save timestamped copy
         key = Key(bucket, name=dest_path)
@@ -102,11 +103,11 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
 def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD, 
                                     store_local=ISC_COURSE_PARTICIPATION_STORE_LOCAL):
     """
-    Generate an Excel-format CSV report with the following fields for 
+    Generate an Excel-format CSV report with the following fields for
     all users/courses in the system
     edX Username, user active/inactive, organization, email, name
-    job title, course title, course id, course state (draft/published/), 
-    course enrollment date/time, course completion date/time, 
+    job title, course title, course id, course state (draft/published/),
+    course enrollment date/time, course completion date/time,
     course last section completed, course last access date/time
 
     set upload to False if you do not want to upload to S3,
@@ -115,23 +116,23 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     """
     request = DummyRequest()
 
-    dt = str(datetime.now()).replace(' ', '').replace(':','-')
+    dt = str(datetime.now()).replace(' ', '').replace(':' , '-')
     fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
     mongo_courses = modulestore().get_courses()
 
-    writer.writerow(['Training Username', 'User Active/Inactive', 
-                     'Organization', 'Training Email', 'Training Name', 
-                     'Job Title',  'Course Title', 'Course Id', 'Course Org',
+    writer.writerow(['Training Username', 'User Active/Inactive',
+                     'Organization', 'Training Email', 'Training Name',
+                     'Job Title', 'Course Title', 'Course Id', 'Course Org',
                      'Course Number',
                      'Course Run', 'Course Visibility', 'Course State',
-                     'Course Enrollment Date', 'Course Completion Date', 
+                     'Course Enrollment Date', 'Course Completion Date',
                      'Course Last Section Completed', 'Course Last Access Date',
-                     'Grade',])
+                     'Grade', ])
 
-    for course in mongo_courses: 
+    for course in mongo_courses:
         datatable = get_student_grade_summary_data(request, course, get_grades=True, get_raw_scores=False)
 
         # dummy for now
@@ -141,13 +142,16 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
         staff_only = course.visible_to_staff_only
         course_visibility = (visible and not staff_only) and 'Public' or 'Private'
         course_state = course.has_ended() and 'Ended' or (course.has_started() and 'Active' or 'Not started')
-        
+
         for d in datatable['data']:
-            
+
             user_id = d[0]
             user = User.objects.get(id=user_id)
-            
-            enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
+
+            try:
+                enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
+            except CourseEnrollment.DoesNotExist:
+                continue
             active = enrollment.is_active and 'active' or 'inactive'
             profile = UserProfile.objects.get(user=user_id)
 
@@ -166,18 +170,18 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 organization = json.loads(profile.meta)['organization']
             except (KeyError, ValueError):
                 organization = ''
-                
+
             enroll_date = enrollment.created.astimezone(tz.gettz('America/New_York'))
 
             try:
-                # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
+                # these are all ungraded courses and we are counting anything with a GeneratedCertificate
                 # record here as complete.
                 completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date.astimezone(tz.gettz('America/New_York')))
             except GeneratedCertificate.DoesNotExist:
                 completion_date = 'n/a'
             try:
                 smod = StudentModule.objects.filter(student=user, course_id=course.id).order_by('-created')[0]
-                smod_ch = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
+                # smod_ch = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
                 last_access_date = smod.created.astimezone(tz.gettz('America/New_York'))
@@ -187,13 +191,14 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
             try:
                 grade = d[5]
+                grade  # pyflakes
             except IndexError:
                 # for some reason sometimes a grade isn't calculated.  Use a 0.0 here.
                 d.append(0.0)
 
-            output_data = [d[1], active, organization, user.email, d[2], job_title, 
-                           course.display_name, 
-                           str(course.id), course.org, course.number, course.location.run, 
+            output_data = [d[1], active, organization, user.email, d[2], job_title,
+                           course.display_name,
+                           str(course.id), course.org, course.number, course.location.run,
                            course_visibility, course_state,
                            str(enroll_date), str(completion_date), last_section_completed,
                            str(last_access_date), d[5]]
@@ -217,7 +222,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     except:
         logger.warn('All course participation report failed')
     finally:
-        fp.close() 
+        fp.close()
 
     # overwrite latest on local filesystem
     if store_local:
@@ -229,18 +234,19 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     if upload:
         latest_fn = 'isc_course_participation.csv'
         bucketname = ISC_COURSE_PARTICIPATION_BUCKET
-        do_store_s3(fn, latest_fn, bucketname)
+        s3_path_prefix = ISC_COURSE_COMPLETION_S3_FOLDER
+        do_store_s3(fn, latest_fn, bucketname, s3_path_prefix)
 
 
-def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD, 
-                                store_local=CMC_COURSE_COMPLETION_STORE_LOCAL):
+def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
+                                 store_local=CMC_COURSE_COMPLETION_STORE_LOCAL):
 
     # from celery.contrib import rdb; rdb.set_trace()  # celery remote debugger
     request = DummyRequest()
 
     dt = str(datetime.now())
-    dt_date_only = dt.split(' ')[0].replace('-','')
-    fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt.replace(' ', '').replace(':','-'))
+    dt_date_only = dt.split(' ')[0].replace('-', '')
+    fn = '/tmp/cmc_course_completion_{0}.csv'.format(dt.replace(' ', '').replace(':', '-'))
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
@@ -281,7 +287,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
 
             enroll_date = CourseEnrollment.objects.get(user=user, course_id=course.id).created
             try:
-                # these are all ungraded courses and we are counting anything with a GeneratedCertificate 
+                # these are all ungraded courses and we are counting anything with a GeneratedCertificate
                 # record here as complete.
                 completion_date = str(GeneratedCertificate.objects.get(user=user, course_id=course.id).created_date)
             except GeneratedCertificate.DoesNotExist:
@@ -290,7 +296,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
                 smod = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
-            except IndexError:
+            except (IndexError, ItemNotFoundError):
                 last_section_completed = 'n/a'
             output_data = [d[1], organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
@@ -323,59 +329,5 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
     if upload:
         latest_fn = 'cmc_course_completion_latest.csv'
         bucketname = CMC_COURSE_COMPLETION_BUCKET
-        do_store_s3(fn, latest_fn, bucketname)
-
-
-def va_enrollment_report():
-    logger.warn('Running VA Learning Path enrollment report')
-
-    dt = str(datetime.now()).replace(' ', '').replace(':','-')
-    fn = '/tmp/va_enrollment_{0}.csv'.format(dt)
-    fp = open(fn, 'w')
-    writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
-    writer.writerow(['Username', 'Email', 'Name', 'Enrollment Date'])
-
-    # get enrollments within last 24 hours
-    startdate = datetime.today() - timedelta(hours=24)
-    enrollments = CourseEnrollment.objects.filter(created__gt=startdate).order_by('-created')
-    store = modulestore()
-    valid_enrollments = 0
-
-    for enroll in enrollments:
-        course = store.get_course(enroll.course_id)
-        if not course:
-            # in case it's been deleted 
-            continue
-
-        if course.org != 'va':
-            continue
-
-        valid_enrollments += 1
-        user = User.objects.get(id=enroll.user_id)
-        profile = UserProfile.objects.get(user_id=enroll.user_id)
-        created = enroll.created.astimezone(tz.gettz('America/New_York'))
-        output_data = [user.username, user.email, profile.name, str(created)]
-        encoded_row = [unicode(s).encode('utf-8') for s in output_data]
-        
-        writer.writerow(encoded_row)
-
-    fp.close()
-
-    # email it to specified recipients
-    try:
-        fp = open(fn, 'r')
-        fp.seek(0)
-        dest_addr = VA_ENROLLMENT_REPORT_RECIPIENTS
-        subject = "Nightly new VA Learning Path course enrollments status for {0}".format(dt)
-        if not valid_enrollments:
-            message = "No new enrollments in last 24 hours"
-        else:
-            message = "See attached CSV file for new enrollments in Learning Path courses in the last 24 hours"
-        mail = EmailMessage(subject, message, to=dest_addr)
-        if valid_enrollments:
-            mail.attach(fp.name, fp.read(), 'text/csv')
-        mail.send()
-    except:
-        logger.warn('VA Learning Path enrollment report failed')
-    finally:
-        fp.close()
+        s3_path_prefix = CMC_COURSE_COMPLETION_S3_FOLDER
+        do_store_s3(fn, latest_fn, bucketname, s3_path_prefix)
