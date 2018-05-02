@@ -10,7 +10,7 @@ from shutil import copyfile
 import json
 import csv
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import tz
 
 from django.contrib.auth.models import User
@@ -145,7 +145,10 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
             user_id = d[0]
             user = User.objects.get(id=user_id)
 
-            enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
+            try:
+                enrollment = CourseEnrollment.objects.filter(user_id=user_id, course_id=course.id)[0]
+            except CourseEnrollment.DoesNotExist:
+                continue
             active = enrollment.is_active and 'active' or 'inactive'
             profile = UserProfile.objects.get(user=user_id)
 
@@ -288,7 +291,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
                 smod = StudentModule.objects.filter(student=user, course_id=course.id, module_type='chapter').order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
-            except IndexError:
+            except (IndexError, ItemNotFoundError):
                 last_section_completed = 'n/a'
             output_data = [d[1], organization, user.email, d[2], job_title, course.display_name, str(enroll_date), str(completion_date), last_section_completed]
             encoded_row = [unicode(s).encode('utf-8') for s in output_data]
