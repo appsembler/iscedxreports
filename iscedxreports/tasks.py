@@ -100,7 +100,7 @@ def do_store_s3(tmp_fn, latest_fn, bucketname, s3_path_prefix):
             remove(local_path)
 
 
-def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD, 
+def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                                     store_local=ISC_COURSE_PARTICIPATION_STORE_LOCAL):
     """
     Generate an Excel-format CSV report with the following fields for
@@ -116,7 +116,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     """
     request = DummyRequest()
 
-    dt = str(datetime.now()).replace(' ', '').replace(':' , '-')
+    dt = str(datetime.now()).replace(' ', '').replace(':', '-')
     fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
@@ -226,7 +226,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
     # overwrite latest on local filesystem
     if store_local:
-        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR[0]
+        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR
         store_fn = 'isc_course_participation.csv'
         do_store_local(fn, store_dir, store_fn)
 
@@ -324,7 +324,7 @@ def cmc_course_completion_report(upload=CMC_COURSE_COMPLETION_S3_UPLOAD,
         fp.close()
 
     if store_local:
-        store_dir = CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR[0]
+        store_dir = CMC_COURSE_COMPLETION_LOCAL_STORAGE_DIR
         store_fn = 'cmc_course_completion_{}.csv'.format(dt_date_only)
         do_store_local(fn, store_dir, store_fn)
 

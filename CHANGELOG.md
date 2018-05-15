@@ -6,6 +6,10 @@ and this project starting adhering to [Semantic Versioning](http://semver.org/sp
 
 ## [Unreleased]
 
+## [0.7.1] - 2018-05-14
+### Changed
+- Bug fix: fix local storage dir values in report tasks.
+
 ## [0.7.0] - 2018-05-14
 ### Added
 - Started keeping a Changelog
