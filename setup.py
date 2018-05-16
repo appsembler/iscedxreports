@@ -1,4 +1,5 @@
 import os
+
 from setuptools import setup, find_packages
 
 
@@ -10,7 +11,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='iscedxreports',
-    version='0.66',
+    version='0.7.1',
     packages=find_packages(),
     include_package_data=True,
     license='BSD License',  # example license
