@@ -213,7 +213,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     if upload:
         latest_fn = 'isc_course_participation.csv'
         bucketname = ISC_COURSE_PARTICIPATION_BUCKET
-
+        do_store_s3(fn, latest_fn, bucketname)
 
 
 def va_enrollment_report():
