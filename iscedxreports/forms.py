@@ -19,20 +19,3 @@ class InterSystemsUserProfileExtensionForm(ModelForm):
     class Meta(object):
         model = InterSystemsUserProfile
         fields = ('organization', )
-
-
-class CMCUserProfileExtensionForm(ModelForm):
-
-
-    class Meta(object):
-        model = InterSystemsUserProfile
-        fields = ('job_title', )
-
-    job_title = CharField(label='Job Title')
-
-    def __init__(self, *args, **kwargs):
-        super(CMCUserProfileExtensionForm, self).__init__(*args, **kwargs)
-        self.fields['job_title'].error_messages = {
-            "required": u"Please indicate your job title.",
-        }
-
