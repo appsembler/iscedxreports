@@ -6,6 +6,8 @@ and this project starting adhering to [Semantic Versioning](http://semver.org/sp
 
 ## [Unreleased]
 
+- Add a custom Course Feedback tab.
+
 ## [1.0.0] - 2019-05-14
 
 - Merge changes from ISC Ficus specific branch.  No longer Dogwood compatible
