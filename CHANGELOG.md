@@ -6,6 +6,14 @@ and this project starting adhering to [Semantic Versioning](http://semver.org/sp
 
 ## [Unreleased]
 
+## [1.0.0] - 2019-05-14
+
+- Merge changes from ISC Ficus specific branch.  No longer Dogwood compatible
+
+## [0.7.1-cmc-dogwood] - 2019-05-14
+
+- Likely final release maintaining CMC Dogwood function.
+
 ## [0.7.1] - 2018-05-14
 ### Changed
 - Bug fix: fix local storage dir values in report tasks.
