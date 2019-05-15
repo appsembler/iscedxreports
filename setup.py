@@ -36,7 +36,7 @@ setup(
     ],
     entry_points={
         "openedx.course_tab": [
-            "isc_help = iscedxreports.tabs:CourseFeedbackTab",
+            "course_feedback = iscedxreports.tabs:CourseFeedbackTab",
         ],
     },
 )
