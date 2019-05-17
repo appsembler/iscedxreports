@@ -11,7 +11,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='iscedxreports',
-    version='1.0.0',
+    version='1.1.0',
     packages=find_packages(),
     include_package_data=True,
     license='BSD License',  # example license
@@ -34,4 +34,9 @@ setup(
     ],
     install_requires=[
     ],
+    entry_points={
+        "openedx.course_tab": [
+            "course_feedback = iscedxreports.tabs:CourseFeedbackTab",
+        ],
+    },
 )
