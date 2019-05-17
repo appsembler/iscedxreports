@@ -15,8 +15,8 @@ class CourseFeedbackTab(CourseTab):
     type = "course_feedback"
     title = ugettext_noop("Report Issues/Feedback")
     view_name = "course_feedback_tab_view"
-    is_dynamic = True
-    is_default = False  # ...has to be dynamic
+    # is_dynamic = True
+    is_default = True
     is_hideable = True
     is_movable = True
 
