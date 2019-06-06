@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -21,7 +23,7 @@ def course_feedback_tab_view(request, course_id):
     context = {
         'course': course,
         'email_addr': configuration_helpers.get_value('DEFAULT_FEEDBACK_EMAIL', getattr(settings, 'DEFAULT_FEEDBACK_EMAIL')),
-        'email_subj': "Feedback about {}".format(course_id),
+        'email_subj': "Feedback about {} ({})".format(course_id, str(datetime.now())),
         'studio_url': get_studio_url(course, 'course_info')
     }
     return render_to_response('iscedxreports/course_feedback.html', context)

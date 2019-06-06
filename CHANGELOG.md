@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project starting adhering to [Semantic Versioning](http://semver.org/spec/v2.0.0.html) as of version 0.7.0.
 
+## [1.1.1] - 2019-06-06
+
+- Remove is_default from Course Feedback tab.
+- Add date/time to subject line of tab email link.
+
 ## [1.1.0] - 2019-05-14
 
 - Add a custom Course Feedback tab.  
