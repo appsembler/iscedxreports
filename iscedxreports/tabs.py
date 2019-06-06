@@ -15,8 +15,8 @@ class CourseFeedbackTab(CourseTab):
     type = "course_feedback"
     title = ugettext_noop("Report Issues/Feedback")
     view_name = "course_feedback_tab_view"
-    is_dynamic = False
-    is_default = True  # doesn't do anything yet but once Studio dynamically supports plugins...
+    is_dynamic = False  # not dynamic, to be able to reorder and hide
+    is_default = False  # we add explicitly through common.lib.xmodule.xmodule.tabs.CourseTabList.initialize_default
     is_hideable = True
     is_movable = True
 
