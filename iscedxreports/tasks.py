@@ -205,7 +205,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
     # overwrite latest on local filesystem
     if store_local:
-        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR[0]
+        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR
         store_fn = 'isc_course_participation.csv'
         do_store_local(fn, store_dir, store_fn)
 
