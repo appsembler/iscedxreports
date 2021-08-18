@@ -34,19 +34,19 @@ setup(
     description='A Django app to handle edX reporting and other customizations for InterSystems',
     long_description=README,
     url='http://www.appsembler.com/',
-    author='Bryan Wilson, Appsembler',
-    author_email='bryan@appsembler.com',
+    author='Appsembler',
+    author_email='opensources@appsembler.com',
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
+        'Framework :: Django :: 2.0',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',  # example license
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        # Replace these appropriately if you are stuck on Python 2.
-        'Programming Language :: Python :: 2.7',
-        'Topic :: Internet :: WWW/HTTP',
-        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     install_requires=[
     ],
@@ -54,5 +54,11 @@ setup(
         "openedx.course_tab": [
             "course_feedback = iscedxreports.tabs:CourseFeedbackTab",
         ],
+        "lms.djangoapp": [
+            "iscedxreports = iscedxreports.apps:ISCEdxReportsConfig",
+        ],
+        "cms.djangoapp": [
+            "iscedxreports = iscedxreports.apps:ISCEdxReportsConfig",
+        ]
     },
 )

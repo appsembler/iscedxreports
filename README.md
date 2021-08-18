@@ -1,0 +1,1 @@
+This package is a Django app with extensions to the platform for InterSystems.

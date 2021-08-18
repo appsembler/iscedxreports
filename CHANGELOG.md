@@ -6,7 +6,10 @@ and this project starting adhering to [Semantic Versioning](http://semver.org/sp
 
 ## Unreleased
 
-- Basic py3, Juniper compat, pep8, lint fixups
+- Basic py3, Juniper compat, pep8, lint fixups. No longer Py2.7 compatible.
+- Make this an Open edX lms.djangoapp and cms.djangoapp plugin.
+- Set up URLs, signal handlers, and Mako template inclusion via AppConfig.
+- Provide a signal handler to add Course Feedback tab to each new course when CourseOverview is created.
 
 ## [1.1.1] - 2019-06-06
 
