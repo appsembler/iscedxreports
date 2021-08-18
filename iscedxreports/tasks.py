@@ -24,7 +24,7 @@ from instructor.utils import DummyRequest
 import boto.s3
 from boto.s3.key import Key
 from datetime import datetime, timedelta
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
 from student.models import CourseEnrollment
@@ -197,8 +197,7 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                          course_visibility, course_state,
                          str(enroll_date), str(completion_date), last_section_completed,
                          str(last_access_date), score]
-            encoded_row = [unicode(s).encode('utf-8') for s in output_data]
-            writer.writerow(encoded_row)
+            writer.writerow(output_data)
 
     fp.flush()
     fp.close()
@@ -245,7 +244,7 @@ def va_enrollment_report():
         profile = UserProfile.objects.get(user_id=enroll.user_id)
         created = enroll.created.astimezone(tz.gettz('America/New_York'))
         output_data = [user.username, user.email, profile.name, str(created)]
-        encoded_row = [unicode(s).encode('utf-8') for s in output_data]
+        encoded_row = [str(s).encode('utf-8') for s in output_data]
 
     writer.writerow(encoded_row)
 

@@ -39,7 +39,7 @@ def get_student_grade_summary_data(
 
         if get_grades:
             gradeset = student_grades(student, request, course, keep_raw_scores=get_raw_scores, use_offline=use_offline)
-            log.debug(u'student=%s, gradeset=%s', student, gradeset)
+            log.debug(f'student={student}, gradeset={gradeset}')
             with gtab.add_row(student.id) as add_grade:
                 if get_raw_scores:
                     # The following code calls add_grade, which is an alias

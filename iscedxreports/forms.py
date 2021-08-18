@@ -12,7 +12,7 @@ class InterSystemsUserProfileExtensionForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super(InterSystemsUserProfileExtensionForm, self).__init__(*args, **kwargs)
         self.fields['organization'].error_messages = {
-            "required": u"Please indicate your organization.",
+            "required": "Please indicate your organization.",
         }
 
 
