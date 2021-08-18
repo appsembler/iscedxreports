@@ -37,8 +37,7 @@ from certificates.models import GeneratedCertificate
 
 
 try:
-    from iscedxreports.app_settings import (VA_ENROLLMENT_REPORT_RECIPIENTS,
-                                            ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
+    from iscedxreports.app_settings import (ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
                                             ISC_COURSE_PARTICIPATION_BUCKET,
                                             ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                                             ISC_COURSE_PARTICIPATION_STORE_LOCAL,
@@ -197,7 +196,8 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                          course_visibility, course_state,
                          str(enroll_date), str(completion_date), last_section_completed,
                          str(last_access_date), score]
-            writer.writerow(output_data)
+            encoded_row = [str(s).encode('utf-8') for s in output_data]
+            writer.writerow(encoded_row)
 
     fp.flush()
     fp.close()
@@ -214,38 +214,3 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
         bucketname = ISC_COURSE_PARTICIPATION_BUCKET
         do_store_s3(fn, latest_fn, bucketname)
 
-
-def va_enrollment_report():
-    logger.warn('Running VA Learning Path enrollment report')
-
-    dt = str(datetime.now()).replace(' ', '').replace(':','-')
-    fn = '/tmp/va_enrollment_{0}.csv'.format(dt)
-    fp = open(fn, 'w')
-    writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
-    writer.writerow(['Username', 'Email', 'Name', 'Enrollment Date'])
-
-    # get enrollments within last 24 hours
-    startdate = datetime.today() - timedelta(hours=24)
-    enrollments = CourseEnrollment.objects.filter(created__gt=startdate).order_by('-created')
-    store = modulestore()
-    valid_enrollments = 0
-
-    for enroll in enrollments:
-        course = store.get_course(enroll.course_id)
-        if not course:
-            # in case it's been deleted
-            continue
-
-        if course.org != 'va':
-            continue
-
-        valid_enrollments += 1
-        user = User.objects.get(id=enroll.user_id)
-        profile = UserProfile.objects.get(user_id=enroll.user_id)
-        created = enroll.created.astimezone(tz.gettz('America/New_York'))
-        output_data = [user.username, user.email, profile.name, str(created)]
-        encoded_row = [str(s).encode('utf-8') for s in output_data]
-
-    writer.writerow(encoded_row)
-
-    fp.close()
