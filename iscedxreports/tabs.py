@@ -2,7 +2,6 @@
 Custom Course Tabs for InterSystems.
 """
 
-from django.conf import settings
 from django.utils.translation import ugettext_noop
 from xmodule.tabs import CourseTab
 

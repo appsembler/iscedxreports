@@ -15,7 +15,6 @@ class InterSystemsUserProfileExtensionForm(ModelForm):
             "required": "Please indicate your organization.",
         }
 
-
     class Meta(object):
         model = InterSystemsUserProfile
         fields = ('organization', )

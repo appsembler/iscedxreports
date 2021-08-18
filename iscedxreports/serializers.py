@@ -4,7 +4,10 @@ from openedx.core.djangoapps.user_api.serializers import ReadOnlyFieldsSerialize
 from .models import InterSystemsUserProfile
 
 
-class InterSystemsUserProfileSerializer(serializers.HyperlinkedModelSerializer, ReadOnlyFieldsSerializerMixin):
+class InterSystemsUserProfileSerializer(
+    serializers.HyperlinkedModelSerializer,
+    ReadOnlyFieldsSerializerMixin
+):
     """
     Class that serializes the portion of User model needed for account information.
     """

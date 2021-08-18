@@ -24,5 +24,5 @@ class Command(BaseCommand):
         try:
             isc_course_participation_report()
             self.stdout.write(self.style.NOTICE('Ran ISC course participation report\n'))
-        except Exception as e:
+        except Exception:
             raise CommandError('Could not complete ISC course participation report\n')
