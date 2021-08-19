@@ -13,9 +13,9 @@ class CourseFeedbackTab(CourseTab):
 
     type = "course_feedback"
     title = ugettext_noop("Report Issues/Feedback")
-    view_name = "course_feedback_tab_view"
+    view_name = "iscedxreports:course_feedback_tab_view"
     is_dynamic = False  # not dynamic, to be able to reorder and hide
-    is_default = False  # we add explicitly through common.lib.xmodule.xmodule.tabs.CourseTabList.initialize_default
+    is_default = False  # we add explicitly through a signal handler on course pre_publish
     is_hideable = True
     is_movable = True
 
