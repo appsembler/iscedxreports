@@ -46,8 +46,7 @@ class ISCEdxReportsConfig(AppConfig):
                 PluginSignals.RELATIVE_PATH: 'handlers',
                 PluginSignals.RECEIVERS: [{
                     PluginSignals.RECEIVER_FUNC_NAME: 'add_course_feedback_tab',
-                    PluginSignals.SIGNAL_PATH: 'django.db.models.signals.post_save',
-                    PluginSignals.SENDER_PATH: 'openedx.core.djangoapps.content.course_overviews.models.CourseOverview',
+                    PluginSignals.SIGNAL_PATH: 'xmodule.modulestore.django.PRE_PUBLISH'
                 }],
             }
         }
