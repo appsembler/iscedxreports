@@ -31,7 +31,14 @@ class ISCEdxReportsConfig(AppConfig):
                 SettingsType.COMMON: {
                     PluginSettings.RELATIVE_PATH: 'settings.common',
                 },
+                SettingsType.PRODUCTION: {
+                    PluginSettings.RELATIVE_PATH: 'settings.lms_production',
+                },
+                # SettingsType.DEVSTACK: {
+                #     PluginSettings.RELATIVE_PATH: 'settings.devstack',
+                # }
             }
+            # so far we don't need any CMS app-specific settings
         },
 
         PluginSignals.CONFIG: {

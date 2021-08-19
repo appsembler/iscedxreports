@@ -13,6 +13,7 @@ import logging
 from datetime import datetime
 from dateutil import tz
 
+from django.conf import settings
 from django.contrib.auth.models import User
 
 from xmodule.modulestore.django import modulestore
@@ -29,21 +30,6 @@ from lms.djangoapps.certificates.models import GeneratedCertificate
 from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
 from student.models import CourseAccessRole, CourseEnrollment, UserProfile
 
-
-try:
-    from iscedxreports.app_settings import (ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
-                                            ISC_COURSE_PARTICIPATION_BUCKET,
-                                            ISC_COURSE_PARTICIPATION_S3_UPLOAD,
-                                            ISC_COURSE_PARTICIPATION_STORE_LOCAL,
-                                            ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
-                                            AWS_ID, AWS_KEY)
-except ImportError:
-    if environ.get('DJANGO_SETTINGS_MODULE') in (
-            'lms.envs.acceptance', 'lms.envs.test',
-            'cms.envs.acceptance', 'cms.envs.test'):
-        ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
-        ISC_COURSE_PARTICIPATION_S3_UPLOAD = False
-        ISC_COURSE_PARTICIPATION_STORE_LOCAL = False
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +48,10 @@ def do_store_local(tmp_fn, local_dir, local_fn):
 def do_store_s3(tmp_fn, latest_fn, bucketname):
     """ handle Amazon S3 storage for generated files
     """
+    aws_id = settings.AUTH_TOKENS.get('AWS_ID')
+    aws_key = settings.AUTH_TOKENS.get('AWS_KEY')
     s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
-    conn_kw = {'aws_access_key_id': AWS_ID, 'aws_secret_access_key': AWS_KEY}
+    conn_kw = {'aws_access_key_id': aws_id, 'aws_secret_access_key': aws_key}
     bucket = s3_conn.get_bucket(bucketname)
     s3_conn = boto.s3.connect_to_region(bucket.get_location(), **conn_kw)
     bucket = s3_conn.get_bucket(bucketname)
@@ -86,8 +74,8 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
             remove(local_path)
 
 
-def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
-                                    store_local=ISC_COURSE_PARTICIPATION_STORE_LOCAL):
+def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_S3_UPLOAD'],
+                                    store_local=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_STORE_LOCAL']):
     """
     Generate an Excel-format CSV report with the following fields for
     all users/courses in the system
@@ -230,12 +218,12 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
     # overwrite latest on local filesystem
     if store_local:
-        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR
+        store_dir = settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR']
         store_fn = 'isc_course_participation.csv'
         do_store_local(fn, store_dir, store_fn)
 
     # upload to S3 bucket
     if upload:
         latest_fn = 'isc_course_participation.csv'
-        bucketname = ISC_COURSE_PARTICIPATION_BUCKET
+        bucketname = settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_BUCKET']
         do_store_s3(fn, latest_fn, bucketname)
