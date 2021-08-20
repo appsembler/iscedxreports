@@ -10,11 +10,11 @@ from shutil import copyfile
 import json
 import csv
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import tz
 
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.mail import EmailMessage
 
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
@@ -23,34 +23,13 @@ from instructor.utils import DummyRequest
 
 import boto.s3
 from boto.s3.key import Key
-from datetime import datetime, timedelta
-import urllib2
 
-from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
-from student.models import CourseEnrollment
 from courseware.courses import get_course_by_id
-from certificates.models import GeneratedCertificate
-
-from student.models import CourseEnrollment, UserProfile, CourseAccessRole
 from courseware.models import StudentModule
-from certificates.models import GeneratedCertificate
+from lms.djangoapps.certificates.models import GeneratedCertificate
+from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
+from student.models import CourseAccessRole, CourseEnrollment, UserProfile
 
-
-try:
-    from iscedxreports.app_settings import (VA_ENROLLMENT_REPORT_RECIPIENTS,
-                                            ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS,
-                                            ISC_COURSE_PARTICIPATION_BUCKET,
-                                            ISC_COURSE_PARTICIPATION_S3_UPLOAD,
-                                            ISC_COURSE_PARTICIPATION_STORE_LOCAL,
-                                            ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR,
-                                            AWS_ID, AWS_KEY)
-except ImportError:
-    if environ.get('DJANGO_SETTINGS_MODULE') in (
-            'lms.envs.acceptance', 'lms.envs.test',
-            'cms.envs.acceptance', 'cms.envs.test'):
-        ISC_COURSE_PARTICIPATION_REPORT_RECIPIENTS = ('bryan@appsembler.com', )
-        ISC_COURSE_PARTICIPATION_S3_UPLOAD = False
-        ISC_COURSE_PARTICIPATION_STORE_LOCAL = False
 
 logger = logging.getLogger(__name__)
 
@@ -58,18 +37,21 @@ logger = logging.getLogger(__name__)
 def do_store_local(tmp_fn, local_dir, local_fn):
     """ handle local storage for generated files
     """
-    local_path = local_dir+'/'+local_fn
+    local_path = local_dir + '/' + local_fn
     if path.exists(local_dir):
         if path.exists(local_path):
             remove(local_path)
         if tmp_fn != local_path:
             copyfile(tmp_fn, local_path)
 
+
 def do_store_s3(tmp_fn, latest_fn, bucketname):
     """ handle Amazon S3 storage for generated files
     """
+    aws_id = settings.AUTH_TOKENS.get('AWS_ID')
+    aws_key = settings.AUTH_TOKENS.get('AWS_KEY')
     s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
-    conn_kw = {'aws_access_key_id':AWS_ID, 'aws_secret_access_key':AWS_KEY}
+    conn_kw = {'aws_access_key_id': aws_id, 'aws_secret_access_key': aws_key}
     bucket = s3_conn.get_bucket(bucketname)
     s3_conn = boto.s3.connect_to_region(bucket.get_location(), **conn_kw)
     bucket = s3_conn.get_bucket(bucketname)
@@ -81,18 +63,19 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
         key.set_contents_from_filename(local_path)
         key = Key(bucket, name=latest_fn)
         key.set_contents_from_filename(local_path)
-    except:
+    except Exception:
         raise
     else:
-        logger.info("uploaded {local} to S3 bucket {bucketname}/{s3path} and replaced {latestpath}".format(local=local_path, bucketname=bucketname, s3path=dest_path, latestpath=latest_fn))
+        logger.info(
+            f'uploaded {local_path} to S3 bucket {bucketname}/{dest_path} and replaced {latest_fn}'
+        )
         # delete the temp file
         if path.exists(local_path):
             remove(local_path)
 
 
-
-def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
-                                    store_local=ISC_COURSE_PARTICIPATION_STORE_LOCAL):
+def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_S3_UPLOAD'],
+                                    store_local=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_STORE_LOCAL']):
     """
     Generate an Excel-format CSV report with the following fields for
     all users/courses in the system
@@ -107,25 +90,35 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
     """
     request = DummyRequest()
 
-    dt = str(datetime.now()).replace(' ', '').replace(':','-')
+    dt = str(datetime.now()).replace(' ', '').replace(':', '-')
     fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
     fp = open(fn, 'w')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
     mongo_courses = modulestore().get_courses()
 
-    writer.writerow(['Training Username', 'User Active/Inactive',
-                     'Organization', 'Training Email', 'Training Name',
-                     'Job Title',  'Course Title', 'Course Id', 'Course Org',
-                     'Course Number',
-                     'Course Run', 'Course Visibility', 'Course State',
-                     'Course Enrollment Date', 'Course Completion Date',
-                     'Course Last Section Completed', 'Course Last Access Date',
-                     'Grade',])
+    writer.writerow([
+        'Training Username',
+        'User Active/Inactive',
+        'Organization',
+        'Training Email',
+        'Training Name',
+        'Job Title',
+        'Course Title',
+        'Course Id',
+        'Course Org',
+        'Course Number',
+        'Course Run',
+        'Course Visibility',
+        'Course State',
+        'Course Enrollment Date',
+        'Course Completion Date',
+        'Course Last Section Completed',
+        'Course Last Access Date',
+        'Grade'
+    ])
 
-
-
-    # Let's walk throw each student profile
+    # Let's walk through each student profile
     output_data = []
     student_list = User.objects.all()
     for student in student_list:
@@ -141,9 +134,11 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
             if not(enrollment.is_active):
                 continue
             try:
-                if 'beta_testers' in CourseAccessRole.objects.get(user=student, course_id=enrollment.course_id).role:
+                if 'beta_testers' in CourseAccessRole.objects.get(
+                    user=student, course_id=enrollment.course_id
+                ).role:
                     continue
-            except:
+            except Exception:
                 pass
             profile = UserProfile.objects.get(user=student.id)
             try:
@@ -156,28 +151,33 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
                 organization = ''
             try:
                 full_name = student.profile.name
-            except:
+            except Exception:
                 continue
             username = student.username
             active = student.is_active and 'active' or 'inactive'
             email = student.email
             try:
                 course = get_course_by_id(enrollment.course_id)
-            except:
+            except Exception:
                 continue
             course_name = course.display_name
-            visible = course.catalog_visibility in ('None', 'About') and False or True
+            visible = False if course.catalog_visibility in ('None', 'About') else True
             staff_only = course.visible_to_staff_only
-            course_visibility = (visible and not staff_only) and 'Public' or 'Private'
-            course_state = course.has_ended() and 'Ended' or (course.has_started() and 'Active' or 'Not started')
+            course_visibility = 'Public' if (visible and not staff_only) else 'Private'
+            course_state = 'Ended' if course.has_ended() else ('Active' if course.has_started() or 'Not started')
             enroll_date = enrollment.created.astimezone(tz.gettz('America/New_York'))
             try:
-                completion_date = str(GeneratedCertificate.objects.get(user=student, course_id=enrollment.course_id).created_date.astimezone(tz.gettz('America/New_York')))
+                completion_date = str(GeneratedCertificate.objects.get(
+                    user=student, course_id=enrollment.course_id
+                ).created_date.astimezone(tz.gettz('America/New_York')))
             except GeneratedCertificate.DoesNotExist:
                 completion_date = 'n/a'
             try:
-                smod = StudentModule.objects.filter(student=student, course_id=enrollment.course_id).order_by('-created')[0]
-                smod_ch = StudentModule.objects.filter(student=student, course_id=enrollment.course_id, module_type='chapter').order_by('-created')[0]
+                smod = StudentModule.objects.filter(
+                    student=student, course_id=enrollment.course_id).order_by('-created')[0]
+                smod_ch = StudentModule.objects.filter(
+                    student=student, course_id=enrollment.course_id, module_type='chapter'
+                ).order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)
                 last_section_completed = mod.display_name
                 last_access_date = smod.created.astimezone(tz.gettz('America/New_York'))
@@ -190,14 +190,27 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
             except IndexError:
                 score = "0.0"
 
-
-            output_data = [username, active, organization, email, full_name, job_title,
-                         course_name,
-                         str(course.id), course.org, course.number, course.location.run,
-                         course_visibility, course_state,
-                         str(enroll_date), str(completion_date), last_section_completed,
-                         str(last_access_date), score]
-            encoded_row = [unicode(s).encode('utf-8') for s in output_data]
+            output_data = [
+                username,
+                active,
+                organization,
+                email,
+                full_name,
+                job_title,
+                course_name,
+                str(course.id),
+                course.org,
+                course.number,
+                course.location.run,
+                course_visibility,
+                course_state,
+                str(enroll_date),
+                str(completion_date),
+                last_section_completed,
+                str(last_access_date),
+                score
+            ]
+            encoded_row = [str(s).encode('utf-8') for s in output_data]
             writer.writerow(encoded_row)
 
     fp.flush()
@@ -205,48 +218,12 @@ def isc_course_participation_report(upload=ISC_COURSE_PARTICIPATION_S3_UPLOAD,
 
     # overwrite latest on local filesystem
     if store_local:
-        store_dir = ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR
+        store_dir = settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_LOCAL_STORAGE_DIR']
         store_fn = 'isc_course_participation.csv'
         do_store_local(fn, store_dir, store_fn)
 
     # upload to S3 bucket
     if upload:
         latest_fn = 'isc_course_participation.csv'
-        bucketname = ISC_COURSE_PARTICIPATION_BUCKET
+        bucketname = settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_BUCKET']
         do_store_s3(fn, latest_fn, bucketname)
-
-
-def va_enrollment_report():
-    logger.warn('Running VA Learning Path enrollment report')
-
-    dt = str(datetime.now()).replace(' ', '').replace(':','-')
-    fn = '/tmp/va_enrollment_{0}.csv'.format(dt)
-    fp = open(fn, 'w')
-    writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
-    writer.writerow(['Username', 'Email', 'Name', 'Enrollment Date'])
-
-    # get enrollments within last 24 hours
-    startdate = datetime.today() - timedelta(hours=24)
-    enrollments = CourseEnrollment.objects.filter(created__gt=startdate).order_by('-created')
-    store = modulestore()
-    valid_enrollments = 0
-
-    for enroll in enrollments:
-        course = store.get_course(enroll.course_id)
-        if not course:
-            # in case it's been deleted
-            continue
-
-        if course.org != 'va':
-            continue
-
-        valid_enrollments += 1
-        user = User.objects.get(id=enroll.user_id)
-        profile = UserProfile.objects.get(user_id=enroll.user_id)
-        created = enroll.created.astimezone(tz.gettz('America/New_York'))
-        output_data = [user.username, user.email, profile.name, str(created)]
-        encoded_row = [unicode(s).encode('utf-8') for s in output_data]
-
-    writer.writerow(encoded_row)
-
-    fp.close()

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project starting adhering to [Semantic Versioning](http://semver.org/spec/v2.0.0.html) as of version 0.7.0.
 
+## Unreleased
+
+## [2.0.0] - 2021-08-20
+
+- Basic py3, Juniper compat, pep8, lint fixups. No longer Py2.7 compatible.
+- Make this an Open edX lms.djangoapp and cms.djangoapp plugin.
+- Set up URLs, signal handlers, and Mako template inclusion via AppConfig.
+- Provide a signal handler to add Course Feedback tab to each new course when CourseOverview is created.
+
 ## [1.1.1] - 2019-06-06
 
 - Remove is_default from Course Feedback tab.
