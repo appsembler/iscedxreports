@@ -6,6 +6,8 @@ and this project starting adhering to [Semantic Versioning](http://semver.org/sp
 
 ## Unreleased
 
+## [2.0.0] - 2021-08-20
+
 - Basic py3, Juniper compat, pep8, lint fixups. No longer Py2.7 compatible.
 - Make this an Open edX lms.djangoapp and cms.djangoapp plugin.
 - Set up URLs, signal handlers, and Mako template inclusion via AppConfig.
