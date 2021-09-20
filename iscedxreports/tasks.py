@@ -5,7 +5,7 @@ This module is called tasks b/c once they were going to be
 Celery tasks
 """
 
-from os import environ, remove, path
+from os import remove, path
 from shutil import copyfile
 import json
 import csv
@@ -25,9 +25,9 @@ import boto.s3
 from boto.s3.key import Key
 
 from courseware.courses import get_course_by_id
-from courseware.models import StudentModule
+from lms.djangoapps.courseware.models import StudentModule
 from lms.djangoapps.certificates.models import GeneratedCertificate
-from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
+from lms.djangoapps.grades.course_grade import CourseGradeFactory
 from student.models import CourseAccessRole, CourseEnrollment, UserProfile
 
 
@@ -67,7 +67,11 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
         raise
     else:
         logger.info(
-            f'uploaded {local_path} to S3 bucket {bucketname}/{dest_path} and replaced {latest_fn}'
+            'uploaded {local_path} to S3 bucket {bucketname}/{dest_path} and replaced {latest_fn}'.format(
+                local_path=local_path,
+                bucketname=bucketname,
+                dest_path=dest_path
+            )
         )
         # delete the temp file
         if path.exists(local_path):
@@ -164,7 +168,7 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
             visible = False if course.catalog_visibility in ('None', 'About') else True
             staff_only = course.visible_to_staff_only
             course_visibility = 'Public' if (visible and not staff_only) else 'Private'
-            course_state = 'Ended' if course.has_ended() else ('Active' if course.has_started() or 'Not started')
+            course_state = 'Ended' if course.has_ended() else ('Active' if course.has_started() else 'Not started')
             enroll_date = enrollment.created.astimezone(tz.gettz('America/New_York'))
             try:
                 completion_date = str(GeneratedCertificate.objects.get(
@@ -185,7 +189,7 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
                 last_access_date = 'n/a'
                 last_section_completed = 'n/a'
             try:
-                course_grade = CourseGradeFactory().create(student, course)
+                course_grade = CourseGradeFactory().read(student, course)
                 score = course_grade.percent
             except IndexError:
                 score = "0.0"
