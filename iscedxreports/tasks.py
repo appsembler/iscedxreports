@@ -27,7 +27,7 @@ from boto.s3.key import Key
 from courseware.courses import get_course_by_id
 from lms.djangoapps.courseware.models import StudentModule
 from lms.djangoapps.certificates.models import GeneratedCertificate
-from lms.djangoapps.grades.course_grade import CourseGradeFactory
+from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from student.models import CourseAccessRole, CourseEnrollment, UserProfile
 
 
