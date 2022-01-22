@@ -96,7 +96,7 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
 
     dt = str(datetime.now()).replace(' ', '').replace(':', '-')
     fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
-    fp = open(fn, 'w')
+    fp = open(fn, 'w', encoding='utf-8')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
     mongo_courses = modulestore().get_courses()
@@ -214,7 +214,7 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
                 str(last_access_date),
                 score
             ]
-            encoded_row = [str(s).encode('utf-8') for s in output_data]
+            encoded_row = [str(s) for s in output_data]
             writer.writerow(encoded_row)
 
     fp.flush()
