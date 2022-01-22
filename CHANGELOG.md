@@ -6,6 +6,14 @@ and this project starting adhering to [Semantic Versioning](http://semver.org/sp
 
 ## Unreleased
 
+## [2.0.2] - 2022-01-21
+
+- Fix utf-8 encoding in completion report
+
+## [2.0.1] - 2022-01-21
+
+- Bugfix on CourseGradeFactory import
+
 ## [2.0.0] - 2021-08-20
 
 - Basic py3, Juniper compat, pep8, lint fixups. No longer Py2.7 compatible.
