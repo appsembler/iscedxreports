@@ -50,7 +50,7 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
     """
     aws_id = settings.AUTH_TOKENS.get('AWS_ID')
     aws_key = settings.AUTH_TOKENS.get('AWS_KEY')
-    s3_conn = boto.connect_s3(AWS_ID, AWS_KEY)
+    s3_conn = boto.connect_s3(aws_id, aws_key)
     conn_kw = {'aws_access_key_id': aws_id, 'aws_secret_access_key': aws_key}
     bucket = s3_conn.get_bucket(bucketname)
     s3_conn = boto.s3.connect_to_region(bucket.get_location(), **conn_kw)
@@ -67,7 +67,8 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
         raise
     else:
         logger.info(
-            'uploaded {local_path} to S3 bucket {bucketname}/{dest_path} and replaced {latest_fn}'.format(
+            ('uploaded {local_path} to S3 bucket {bucketname}/{dest_path} ' +
+             'and replaced {latest_fn}').format(
                 local_path=local_path,
                 bucketname=bucketname,
                 dest_path=dest_path
@@ -78,8 +79,9 @@ def do_store_s3(tmp_fn, latest_fn, bucketname):
             remove(local_path)
 
 
-def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_S3_UPLOAD'],
-                                    store_local=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_STORE_LOCAL']):
+def isc_course_participation_report(
+        upload=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_S3_UPLOAD'],
+        store_local=settings.ISCEDXREPORTS['ISC_COURSE_PARTICIPATION_STORE_LOCAL']):
     """
     Generate an Excel-format CSV report with the following fields for
     all users/courses in the system
@@ -92,14 +94,14 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
     this will also keep temporary files that are created.
 
     """
-    request = DummyRequest()
+    DummyRequest()  # why is this being called if we aren't using the result?
 
     dt = str(datetime.now()).replace(' ', '').replace(':', '-')
     fn = '/tmp/isc_course_participation_{0}.csv'.format(dt)
     fp = open(fn, 'w', encoding='utf-8')
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 
-    mongo_courses = modulestore().get_courses()
+    modulestore().get_courses()  # why is this called if we aren't using the results?
 
     writer.writerow([
         'Training Username',
@@ -132,7 +134,7 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
             elif ("+" in str(enrollment.course_id)):
                 org = str(enrollment.course_id).split('+')[0].lower().split(":")[1]
             if org == 'cmc':
-                CourseEnrollment.unenroll(student,enrollment.course_id)
+                CourseEnrollment.unenroll(student, enrollment.course_id)
                 CourseEnrollment.objects.filter(course_id=enrollment.course_id).delete()
                 continue
             if not(enrollment.is_active):
@@ -168,7 +170,8 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
             visible = False if course.catalog_visibility in ('None', 'About') else True
             staff_only = course.visible_to_staff_only
             course_visibility = 'Public' if (visible and not staff_only) else 'Private'
-            course_state = 'Ended' if course.has_ended() else ('Active' if course.has_started() else 'Not started')
+            course_state = 'Ended' if course.has_ended() else (
+                'Active' if course.has_started() else 'Not started')
             enroll_date = enrollment.created.astimezone(tz.gettz('America/New_York'))
             try:
                 completion_date = str(GeneratedCertificate.objects.get(
@@ -179,7 +182,7 @@ def isc_course_participation_report(upload=settings.ISCEDXREPORTS['ISC_COURSE_PA
             try:
                 smod = StudentModule.objects.filter(
                     student=student, course_id=enrollment.course_id).order_by('-created')[0]
-                smod_ch = StudentModule.objects.filter(
+                StudentModule.objects.filter(
                     student=student, course_id=enrollment.course_id, module_type='chapter'
                 ).order_by('-created')[0]
                 mod = modulestore().get_item(smod.module_state_key)

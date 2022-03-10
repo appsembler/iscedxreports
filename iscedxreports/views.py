@@ -17,11 +17,13 @@ def course_feedback_tab_view(request, course_id):
     Display the Course Report Issues/Feedback tab
     """
     course_key = CourseKey.from_string(course_id)
-    course = get_course_with_access(request.user, 'load', course_key, depth=None, check_if_enrolled=True)
+    course = get_course_with_access(request.user, 'load', course_key, depth=None,
+                                    check_if_enrolled=True)
 
     context = {
         'course': course,
-        'email_addr': configuration_helpers.get_value('DEFAULT_FEEDBACK_EMAIL', getattr(settings, 'DEFAULT_FEEDBACK_EMAIL')),
+        'email_addr': configuration_helpers.get_value('DEFAULT_FEEDBACK_EMAIL',
+                                                      getattr(settings, 'DEFAULT_FEEDBACK_EMAIL')),
         'email_subj': "Feedback about {} ({})".format(course_id, str(datetime.now())),
         'studio_url': get_studio_url(course, 'course_info')
     }
